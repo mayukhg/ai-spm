@@ -158,7 +158,7 @@ export default function AssetTable() {
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="model">Models</SelectItem>
               <SelectItem value="dataset">Datasets</SelectItem>
               <SelectItem value="api">APIs</SelectItem>
@@ -170,7 +170,7 @@ export default function AssetTable() {
               <SelectValue placeholder="All Environments" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Environments</SelectItem>
+              <SelectItem value="all">All Environments</SelectItem>
               <SelectItem value="production">Production</SelectItem>
               <SelectItem value="staging">Staging</SelectItem>
               <SelectItem value="development">Development</SelectItem>

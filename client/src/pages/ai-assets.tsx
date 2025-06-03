@@ -346,7 +346,7 @@ export default function AiAssets() {
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="model">Models</SelectItem>
                     <SelectItem value="dataset">Datasets</SelectItem>
                     <SelectItem value="api">APIs</SelectItem>
@@ -359,7 +359,7 @@ export default function AiAssets() {
                     <SelectValue placeholder="Environment" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Environments</SelectItem>
+                    <SelectItem value="all">All Environments</SelectItem>
                     <SelectItem value="production">Production</SelectItem>
                     <SelectItem value="staging">Staging</SelectItem>
                     <SelectItem value="development">Development</SelectItem>
@@ -371,7 +371,7 @@ export default function AiAssets() {
                     <SelectValue placeholder="Risk" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Risk Levels</SelectItem>
+                    <SelectItem value="all">All Risk Levels</SelectItem>
                     <SelectItem value="critical">Critical</SelectItem>
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>

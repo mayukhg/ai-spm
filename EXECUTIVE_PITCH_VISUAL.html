@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Security Posture Management - Executive Pitch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .presentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .slide {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .slide:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .hero-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #64ffda;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #1e3c72;
+            border-bottom: 3px solid #64ffda;
+            padding-bottom: 10px;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .problem-card {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .problem-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .problem-card ul {
+            list-style: none;
+        }
+
+        .problem-card li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .problem-card li:before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .solution-card {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .solution-card:hover {
+            transform: scale(1.05);
+        }
+
+        .solution-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .solution-card ul {
+            list-style: none;
+        }
+
+        .solution-card li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .solution-card li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #64ffda;
+            font-weight: bold;
+        }
+
+        .roi-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .roi-chart {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .roi-number {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #64ffda;
+            margin: 20px 0;
+        }
+
+        .roi-details {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        .roi-details h4 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .roi-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .competitive-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .competitive-table th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .competitive-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .competitive-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .our-row {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%) !important;
+            color: white;
+            font-weight: 600;
+        }
+
+        .timeline {
+            position: relative;
+            margin-top: 40px;
+        }
+
+        .timeline:before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #667eea, #764ba2);
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-right: 55%;
+        }
+
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-left: 55%;
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #64ffda;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #64ffda;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #64ffda;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            text-align: center;
+            padding: 60px 40px;
+            border-radius: 20px;
+            margin-top: 40px;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .cta-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            background: #64ffda;
+            color: #1e3c72;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-button:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-label {
+            min-width: 150px;
+            font-weight: 600;
+            color: #1e3c72;
+        }
+
+        .chart-bar-fill {
+            height: 30px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: 600;
+            margin-left: 15px;
+            min-width: 60px;
+        }
+
+        .bar-savings {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .bar-efficiency {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bar-protection {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .roi-container {
+                grid-template-columns: 1fr;
+            }
+
+            .timeline:before {
+                left: 20px;
+            }
+
+            .timeline-item:nth-child(odd) .timeline-content,
+            .timeline-item:nth-child(even) .timeline-content {
+                margin-left: 50px;
+                margin-right: 0;
+            }
+
+            .timeline-marker {
+                left: 20px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- Hero Slide -->
+        <div class="slide hero-slide fade-in">
+            <h1 class="hero-title">AI Security Posture Management</h1>
+            <p class="hero-subtitle">Enterprise-Grade AI Security & Compliance Platform</p>
+            <p style="font-size: 1.2rem; margin-bottom: 40px;">Comprehensive security governance for AI systems throughout their lifecycle</p>
+            
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-number">85%</div>
+                    <div class="stat-label">Reduction in AI Security Incidents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">679%</div>
+                    <div class="stat-label">3-Year ROI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">99.5%</div>
+                    <div class="stat-label">Compliance Readiness</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">300%</div>
+                    <div class="stat-label">Faster AI Deployment</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Opportunity -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Market Opportunity</h2>
+            <div class="problem-grid">
+                <div class="solution-card">
+                    <h3>Market Size</h3>
+                    <ul>
+                        <li>$45.2B Total Addressable Market</li>
+                        <li>$8.7B AI Security Market</li>
+                        <li>42% CAGR through 2028</li>
+                        <li>76% Enterprise AI Adoption</li>
+                    </ul>
+                </div>
+                <div class="solution-card">
+                    <h3>Industry Drivers</h3>
+                    <ul>
+                        <li>EU AI Act & NIST AI RMF</li>
+                        <li>340% Increase in AI Attacks</li>
+                        <li>$14.8M Average Compliance Cost</li>
+                        <li>89% Insurance Requirements</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Business Problem -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Current Business Challenges</h2>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <h3>Security Gaps</h3>
+                    <ul>
+                        <li>No AI-specific threat detection</li>
+                        <li>Manual asset discovery</li>
+                        <li>Siloed security teams</li>
+                        <li>Reactive vulnerability response</li>
+                    </ul>
+                </div>
+                <div class="problem-card">
+                    <h3>Compliance Challenges</h3>
+                    <ul>
+                        <li>6-12 month manual assessments</li>
+                        <li>Fragmented policy enforcement</li>
+                        <li>Limited audit capabilities</li>
+                        <li>43% assessment failure rate</li>
+                    </ul>
+                </div>
+                <div class="problem-card">
+                    <h3>Business Impact</h3>
+                    <ul>
+                        <li>$24M average incident cost</li>
+                        <li>67% of AI projects delayed</li>
+                        <li>156 days to detect compromise</li>
+                        <li>Significant compliance fines</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution Overview -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Our AI-SPM Platform Solution</h2>
+            <div class="solution-grid">
+                <div class="solution-card">
+                    <h3>🛡️ Asset Management</h3>
+                    <ul>
+                        <li>Automated AI asset discovery</li>
+                        <li>Real-time inventory tracking</li>
+                        <li>Risk classification system</li>
+                        <li>Dependency mapping</li>
+                    </ul>
+                </div>
+                <div class="solution-card">
+                    <h3>🔍 Threat Detection</h3>
+                    <ul>
+                        <li>Continuous vulnerability scanning</li>
+                        <li>Model poisoning detection</li>
+                        <li>Anomaly monitoring</li>
+                        <li>Automated incident response</li>
+                    </ul>
+                </div>
+                <div class="solution-card">
+                    <h3>📊 Compliance Management</h3>
+                    <ul>
+                        <li>Multi-framework support</li>
+                        <li>Automated assessments</li>
+                        <li>Real-time policy enforcement</li>
+                        <li>Executive reporting</li>
+                    </ul>
+                </div>
+                <div class="solution-card">
+                    <h3>⚡ Operational Excellence</h3>
+                    <ul>
+                        <li>Role-based dashboards</li>
+                        <li>Tool integrations</li>
+                        <li>Automated workflows</li>
+                        <li>Predictive analytics</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitive Advantage -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Competitive Landscape</h2>
+            <table class="competitive-table">
+                <thead>
+                    <tr>
+                        <th>Solution Category</th>
+                        <th>AI Focus</th>
+                        <th>Security Features</th>
+                        <th>Compliance Tools</th>
+                        <th>Integration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Traditional Security</td>
+                        <td>❌ Limited</td>
+                        <td>✅ Mature</td>
+                        <td>⚠️ Basic</td>
+                        <td>✅ Good</td>
+                    </tr>
+                    <tr>
+                        <td>AI Governance Platforms</td>
+                        <td>✅ Strong</td>
+                        <td>❌ Limited</td>
+                        <td>✅ Good</td>
+                        <td>⚠️ Basic</td>
+                    </tr>
+                    <tr>
+                        <td>Compliance Tools</td>
+                        <td>❌ None</td>
+                        <td>❌ None</td>
+                        <td>✅ Strong</td>
+                        <td>⚠️ Limited</td>
+                    </tr>
+                    <tr class="our-row">
+                        <td><strong>Our AI-SPM Platform</strong></td>
+                        <td><strong>✅ Native</strong></td>
+                        <td><strong>✅ Advanced</strong></td>
+                        <td><strong>✅ Comprehensive</strong></td>
+                        <td><strong>✅ Extensive</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ROI Analysis -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Financial Impact & ROI</h2>
+            <div class="roi-container">
+                <div class="roi-chart">
+                    <h3>3-Year ROI</h3>
+                    <div class="roi-number">679%</div>
+                    <p>Payback Period: 8 months</p>
+                </div>
+                <div class="roi-details">
+                    <h4>Investment Breakdown</h4>
+                    <div class="roi-item">
+                        <span>Platform Investment</span>
+                        <span><strong>$2.4M</strong></span>
+                    </div>
+                    <div class="roi-item">
+                        <span>Total Benefits</span>
+                        <span><strong>$18.7M</strong></span>
+                    </div>
+                    <div class="roi-item">
+                        <span>Net ROI</span>
+                        <span><strong>$16.3M</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h4 style="margin-bottom: 25px; color: #1e3c72; font-size: 1.3rem;">Cost Savings Breakdown</h4>
+                <div class="chart-bar">
+                    <div class="chart-label">Incident Prevention</div>
+                    <div class="chart-bar-fill bar-savings" style="width: 85%;">$20.4M</div>
+                </div>
+                <div class="chart-bar">
+                    <div class="chart-label">Compliance Efficiency</div>
+                    <div class="chart-bar-fill bar-efficiency" style="width: 70%;">$2.8M</div>
+                </div>
+                <div class="chart-bar">
+                    <div class="chart-label">Operational Savings</div>
+                    <div class="chart-bar-fill bar-protection" style="width: 60%;">$8.0M</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Implementation Timeline -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Implementation Roadmap</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 1: Foundation (Months 1-3)</h3>
+                        <p><strong>Objective:</strong> Establish core security visibility</p>
+                        <ul style="margin-top: 15px; list-style: disc; margin-left: 20px;">
+                            <li>Deploy across 3 pilot business units</li>
+                            <li>Complete AI asset discovery</li>
+                            <li>Implement basic monitoring</li>
+                            <li>Train security teams</li>
+                        </ul>
+                        <p style="margin-top: 15px; color: #4ecdc4; font-weight: 600;">Target: 100% asset discovery, 25% task reduction</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 2: Optimization (Months 4-8)</h3>
+                        <p><strong>Objective:</strong> Scale platform and enhance automation</p>
+                        <ul style="margin-top: 15px; list-style: disc; margin-left: 20px;">
+                            <li>Extend to all business units</li>
+                            <li>Implement compliance workflows</li>
+                            <li>Integrate with existing tools</li>
+                            <li>Establish continuous monitoring</li>
+                        </ul>
+                        <p style="margin-top: 15px; color: #4ecdc4; font-weight: 600;">Target: 90% automation, 50% faster response</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 3: Excellence (Months 9-12)</h3>
+                        <p><strong>Objective:</strong> Achieve advanced security maturity</p>
+                        <ul style="margin-top: 15px; list-style: disc; margin-left: 20px;">
+                            <li>Deploy predictive analytics</li>
+                            <li>Advanced compliance reporting</li>
+                            <li>Optimize workflows</li>
+                            <li>Establish center of excellence</li>
+                        </ul>
+                        <p style="margin-top: 15px; color: #4ecdc4; font-weight: 600;">Target: 85% incident reduction, full ROI realization</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Metrics -->
+        <div class="slide fade-in">
+            <h2 class="section-title">Success Metrics & KPIs</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">85%</div>
+                    <div class="metric-label">Incident Reduction</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">15min</div>
+                    <div class="metric-label">Threat Detection Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">95%</div>
+                    <div class="metric-label">Compliance Score</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">90%</div>
+                    <div class="metric-label">Task Automation</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">75%</div>
+                    <div class="metric-label">Faster Response</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">300%</div>
+                    <div class="metric-label">Team Productivity</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">60%</div>
+                    <div class="metric-label">Faster Approvals</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">$20M</div>
+                    <div class="metric-label">Cost Avoidance</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-section fade-in">
+            <h2 class="cta-title">Ready to Transform Your AI Security?</h2>
+            <p class="cta-subtitle">Start your journey to comprehensive AI security governance today</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 15px;">
+                    <h3 style="margin-bottom: 15px;">90-Day Pilot Program</h3>
+                    <ul style="list-style: none; text-align: left;">
+                        <li style="padding: 5px 0;">✓ 3 business units</li>
+                        <li style="padding: 5px 0;">✓ 50+ AI assets</li>
+                        <li style="padding: 5px 0;">✓ $200K investment</li>
+                        <li style="padding: 5px 0;">✓ Guaranteed ROI</li>
+                    </ul>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 15px;">
+                    <h3 style="margin-bottom: 15px;">Business Value Guarantee</h3>
+                    <ul style="list-style: none; text-align: left;">
+                        <li style="padding: 5px 0;">✓ Complete asset inventory</li>
+                        <li style="padding: 5px 0;">✓ 50% process reduction</li>
+                        <li style="padding: 5px 0;">✓ Real-time compliance</li>
+                        <li style="padding: 5px 0;">✓ Q1 ROI demonstration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="cta-buttons">
+                <a href="#" class="cta-button">Schedule Executive Briefing</a>
+                <a href="#" class="cta-button">Request Technical Demo</a>
+                <a href="#" class="cta-button">Start Pilot Program</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Add smooth scrolling for better navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add loading animation
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '1';
+        });
+    </script>
+</body>
+</html>
