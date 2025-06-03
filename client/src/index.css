@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 11% 98%; /* #F5F7FA */
+  --foreground: 240 10% 3.9%; /* #0F172A */
+  --muted: 210 40% 96%; /* #F1F5F9 */
+  --muted-foreground: 215 16% 47%; /* #64748B */
+  --popover: 0 0% 100%; /* #FFFFFF */
+  --popover-foreground: 240 10% 3.9%; /* #0F172A */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 240 10% 3.9%; /* #0F172A */
+  --border: 214 32% 91%; /* #E2E8F0 */
+  --input: 214 32% 91%; /* #E2E8F0 */
+  --primary: 221 83% 53%; /* #1565C0 */
+  --primary-foreground: 210 40% 98%; /* #F8FAFC */
+  --secondary: 210 40% 96%; /* #F1F5F9 */
+  --secondary-foreground: 222 84% 5%; /* #0F172A */
+  --accent: 210 40% 96%; /* #F1F5F9 */
+  --accent-foreground: 222 84% 5%; /* #0F172A */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 210 40% 98%; /* #F8FAFC */
+  --ring: 221 83% 53%; /* #1565C0 */
+  --radius: 0.5rem;
+  
+  /* Custom AI-SPM colors */
+  --success: 142 76% 36%; /* #16A34A */
+  --success-foreground: 138 76% 97%; /* #F0FDF4 */
+  --warning: 25 95% 53%; /* #F59E0B */
+  --warning-foreground: 20 14% 4%; /* #0F172A */
+  --error: 0 84% 60%; /* #EF4444 */
+  --error-foreground: 210 40% 98%; /* #F8FAFC */
+  --info: 204 94% 94%; /* #EFF6FF */
+  --info-foreground: 213 94% 68%; /* #3B82F6 */
+  
+  /* Sidebar specific colors */
+  --sidebar-background: 0 0% 100%; /* #FFFFFF */
+  --sidebar-foreground: 240 5% 26%; /* #374151 */
+  --sidebar-primary: 221 83% 53%; /* #1565C0 */
+  --sidebar-primary-foreground: 210 40% 98%; /* #F8FAFC */
+  --sidebar-accent: 210 40% 96%; /* #F1F5F9 */
+  --sidebar-accent-foreground: 222 84% 5%; /* #0F172A */
+  --sidebar-border: 214 32% 91%; /* #E2E8F0 */
+  --sidebar-ring: 221 83% 53%; /* #1565C0 */
+  
+  /* Chart colors */
+  --chart-1: 221 83% 53%; /* #1565C0 */
+  --chart-2: 142 76% 36%; /* #16A34A */
+  --chart-3: 25 95% 53%; /* #F59E0B */
+  --chart-4: 0 84% 60%; /* #EF4444 */
+  --chart-5: 262 83% 58%; /* #8B5CF6 */
+}
+
+.dark {
+  --background: 222 84% 5%; /* #0F172A */
+  --foreground: 210 40% 98%; /* #F8FAFC */
+  --muted: 217 33% 17%; /* #1E293B */
+  --muted-foreground: 215 20% 65%; /* #94A3B8 */
+  --popover: 222 84% 5%; /* #0F172A */
+  --popover-foreground: 210 40% 98%; /* #F8FAFC */
+  --card: 222 84% 5%; /* #0F172A */
+  --card-foreground: 210 40% 98%; /* #F8FAFC */
+  --border: 217 33% 17%; /* #1E293B */
+  --input: 217 33% 17%; /* #1E293B */
+  --primary: 217 91% 60%; /* #3B82F6 */
+  --primary-foreground: 222 84% 5%; /* #0F172A */
+  --secondary: 217 33% 17%; /* #1E293B */
+  --secondary-foreground: 210 40% 98%; /* #F8FAFC */
+  --accent: 217 33% 17%; /* #1E293B */
+  --accent-foreground: 210 40% 98%; /* #F8FAFC */
+  --destructive: 0 72% 51%; /* #DC2626 */
+  --destructive-foreground: 210 40% 98%; /* #F8FAFC */
+  --ring: 217 91% 60%; /* #3B82F6 */
+  
+  /* Custom dark mode colors */
+  --success: 142 71% 45%; /* #22C55E */
+  --success-foreground: 222 84% 5%; /* #0F172A */
+  --warning: 32 95% 44%; /* #EAB308 */
+  --warning-foreground: 222 84% 5%; /* #0F172A */
+  --error: 0 72% 51%; /* #DC2626 */
+  --error-foreground: 210 40% 98%; /* #F8FAFC */
+  --info: 221 39% 11%; /* #1E3A8A */
+  --info-foreground: 213 94% 68%; /* #3B82F6 */
+  
+  /* Sidebar dark mode */
+  --sidebar-background: 222 84% 5%; /* #0F172A */
+  --sidebar-foreground: 210 40% 98%; /* #F8FAFC */
+  --sidebar-primary: 217 91% 60%; /* #3B82F6 */
+  --sidebar-primary-foreground: 222 84% 5%; /* #0F172A */
+  --sidebar-accent: 217 33% 17%; /* #1E293B */
+  --sidebar-accent-foreground: 210 40% 98%; /* #F8FAFC */
+  --sidebar-border: 217 33% 17%; /* #1E293B */
+  --sidebar-ring: 217 91% 60%; /* #3B82F6 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+}
+
+@layer components {
+  /* Custom utility classes for AI-SPM */
+  .risk-critical {
+    @apply bg-red-50 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800;
+  }
+
+  .risk-high {
+    @apply bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:border-orange-800;
+  }
+
+  .risk-medium {
+    @apply bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-200 dark:border-yellow-800;
+  }
+
+  .risk-low {
+    @apply bg-green-50 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-200 dark:border-green-800;
+  }
+
+  .status-active {
+    @apply bg-green-50 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-200 dark:border-green-800;
+  }
+
+  .status-inactive {
+    @apply bg-gray-50 text-gray-800 border-gray-200 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-800;
+  }
+
+  .status-deprecated {
+    @apply bg-red-50 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800;
+  }
+
+  /* Loading skeleton animation */
+  .animate-pulse-custom {
+    animation: pulse-custom 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-custom {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: .5;
+    }
+  }
+
+  /* Dashboard card hover effects */
+  .dashboard-card {
+    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20;
+  }
+
+  /* Alert severity colors */
+  .alert-critical {
+    @apply bg-red-50 border-l-4 border-l-red-500 text-red-900 dark:bg-red-950/50 dark:text-red-200;
+  }
+
+  .alert-high {
+    @apply bg-orange-50 border-l-4 border-l-orange-500 text-orange-900 dark:bg-orange-950/50 dark:text-orange-200;
+  }
+
+  .alert-medium {
+    @apply bg-yellow-50 border-l-4 border-l-yellow-500 text-yellow-900 dark:bg-yellow-950/50 dark:text-yellow-200;
+  }
+
+  .alert-low {
+    @apply bg-blue-50 border-l-4 border-l-blue-500 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200;
+  }
+
+  .alert-info {
+    @apply bg-blue-50 border-l-4 border-l-blue-500 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200;
+  }
+}
+
+/* FontAwesome icon spacing fix */
+.fa-fw {
+  width: 1.25em;
+}
+
+/* Custom focus styles for better accessibility */
+.focus-visible {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* Print styles for reports */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-before: always;
+  }
+}
