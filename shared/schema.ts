@@ -246,3 +246,12 @@ export type GovernancePolicy = typeof governancePolicies.$inferSelect;
 export type InsertGovernancePolicy = z.infer<typeof insertGovernancePolicySchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+
+// Additional types for API responses
+export type VulnerabilityStats = {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  total: number;
+};

@@ -69,9 +69,9 @@ export default function AiAssets() {
       "/api/ai-assets",
       {
         search: searchQuery || undefined,
-        type: typeFilter || undefined,
-        environment: environmentFilter || undefined,
-        riskLevel: riskFilter || undefined,
+        type: (typeFilter && typeFilter !== "all") ? typeFilter : undefined,
+        environment: (environmentFilter && environmentFilter !== "all") ? environmentFilter : undefined,
+        riskLevel: (riskFilter && riskFilter !== "all") ? riskFilter : undefined,
       }
     ],
   });

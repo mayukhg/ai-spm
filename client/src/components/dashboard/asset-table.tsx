@@ -45,8 +45,8 @@ export default function AssetTable() {
       "/api/ai-assets", 
       { 
         search: searchQuery || undefined, 
-        type: typeFilter || undefined,
-        environment: environmentFilter || undefined
+        type: (typeFilter && typeFilter !== "all") ? typeFilter : undefined,
+        environment: (environmentFilter && environmentFilter !== "all") ? environmentFilter : undefined
       }
     ],
     refetchInterval: 30000, // Refresh every 30 seconds
