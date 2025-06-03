@@ -534,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await logAction(req.user!.id, "wiz_alert_sync", "integration", null, req.body);
+      await logAction(req.user!.id, "wiz_alert_sync", "integration", undefined, req.body);
 
       const result = await wizIntegration.syncSecurityAlerts(req.body);
       res.json({
