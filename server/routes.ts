@@ -471,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await logAction(req.user!.id, "wiz_full_sync", "integration", null, req.body);
+      await logAction(req.user!.id, "wiz_full_sync", "integration", undefined, req.body);
 
       const result = await wizIntegration.fullSync(req.body);
       res.json({
@@ -492,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await logAction(req.user!.id, "wiz_asset_sync", "integration", null, req.body);
+      await logAction(req.user!.id, "wiz_asset_sync", "integration", undefined, req.body);
 
       const result = await wizIntegration.syncAssets(req.body);
       res.json({
@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await logAction(req.user!.id, "wiz_vulnerability_sync", "integration", null, req.body);
+      await logAction(req.user!.id, "wiz_vulnerability_sync", "integration", undefined, req.body);
 
       const result = await wizIntegration.syncVulnerabilities(req.body);
       res.json({

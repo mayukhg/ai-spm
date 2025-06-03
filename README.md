@@ -22,6 +22,15 @@ A comprehensive enterprise-grade security platform designed to manage, monitor, 
 - **Compliance Reporting**: Automated generation of compliance reports and certifications
 - **Custom Dashboards**: Role-based views with personalized security insights
 
+### 🔗 Third-Party Integrations
+- **Wiz Security Platform**: Native integration for importing cloud security data
+  - Automated asset discovery from cloud environments
+  - Vulnerability and security alert synchronization
+  - Compliance findings and risk factor mapping
+  - Real-time data synchronization with configurable filters
+- **API-First Design**: RESTful APIs for custom integrations
+- **Webhook Support**: Real-time notifications for external systems
+
 ### 👥 Enterprise Features
 - **Role-Based Access Control**: Granular permissions for different user roles and departments
 - **Multi-Tenant Support**: Isolated environments for different business units
@@ -172,6 +181,15 @@ GET  /api/dashboard/metrics         # Dashboard statistics
 GET  /api/audit-logs               # System audit logs
 ```
 
+### Wiz Integration Endpoints
+```
+GET  /api/integrations/wiz/status              # Check Wiz integration status
+POST /api/integrations/wiz/sync                # Full sync (assets, vulns, alerts)
+POST /api/integrations/wiz/sync-assets         # Sync only assets
+POST /api/integrations/wiz/sync-vulnerabilities # Sync only vulnerabilities  
+POST /api/integrations/wiz/sync-alerts         # Sync only security alerts
+```
+
 ## Installation & Setup
 
 ### Prerequisites
@@ -196,6 +214,11 @@ SESSION_SECRET=your_session_secret_key
 # Application
 NODE_ENV=development
 PORT=5000
+
+# Wiz Integration (Optional)
+WIZ_CLIENT_ID=your_wiz_client_id
+WIZ_CLIENT_SECRET=your_wiz_client_secret
+WIZ_AUDIENCE=beyond-api
 ```
 
 ### Installation Steps
@@ -373,6 +396,189 @@ npm run db:push
 - Implement comprehensive error handling
 - Write unit and integration tests
 - Document API changes and new features
+
+## Wiz Integration Guide
+
+### Overview
+
+The AI-SPM platform includes native integration with Wiz security platform for automated import of cloud security data including assets, vulnerabilities, and security alerts.
+
+### Setting Up Wiz Integration
+
+#### 1. Obtain Wiz API Credentials
+
+Contact your Wiz administrator to create API credentials:
+- Navigate to Wiz console > Settings > Service Accounts
+- Create a new service account with appropriate permissions
+- Note down the Client ID and Client Secret
+
+#### 2. Configure Environment Variables
+
+Add the following to your `.env` file:
+```bash
+WIZ_CLIENT_ID=your_wiz_client_id
+WIZ_CLIENT_SECRET=your_wiz_client_secret
+WIZ_AUDIENCE=beyond-api
+```
+
+#### 3. Verify Integration Status
+
+Check integration status via API:
+```bash
+curl -X GET "http://localhost:5000/api/integrations/wiz/status" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+### Using Wiz Integration
+
+#### Full Data Sync
+
+Sync all data types (assets, vulnerabilities, alerts):
+```bash
+curl -X POST "http://localhost:5000/api/integrations/wiz/sync" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -d '{
+    "assetFilters": {
+      "cloudPlatform": "AWS",
+      "limit": 100
+    },
+    "vulnFilters": {
+      "severity": ["CRITICAL", "HIGH"],
+      "limit": 50
+    },
+    "alertFilters": {
+      "severity": ["CRITICAL", "HIGH"],
+      "limit": 25
+    }
+  }'
+```
+
+#### Asset-Only Sync
+
+Import cloud assets from Wiz:
+```bash
+curl -X POST "http://localhost:5000/api/integrations/wiz/sync-assets" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -d '{
+    "cloudPlatform": "Azure",
+    "subscriptionId": "your-subscription-id",
+    "limit": 200
+  }'
+```
+
+#### Vulnerability Sync
+
+Import security vulnerabilities:
+```bash
+curl -X POST "http://localhost:5000/api/integrations/wiz/sync-vulnerabilities" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -d '{
+    "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+    "status": ["OPEN", "IN_PROGRESS"],
+    "limit": 100
+  }'
+```
+
+### Data Mapping
+
+#### Asset Transformation
+- **Wiz Asset Types** → **AI-SPM Asset Types**
+  - MachineLearningModel → model
+  - Dataset → dataset
+  - APIGateway → api
+  - Pipeline → pipeline
+  - Container → model (default)
+  - Function → api (default)
+
+#### Risk Level Mapping
+- **Critical/High Risk Factors** → critical
+- **Medium Risk Factors** → medium  
+- **Low/No Risk Factors** → low
+
+#### Status Mapping
+- **RUNNING** → active (production environment)
+- **STOPPED/TERMINATED** → inactive (development environment)
+
+### Automated Sync Workflows
+
+#### Scheduled Sync (Recommended)
+
+Set up automated sync using cron jobs or task schedulers:
+
+```bash
+# Daily full sync at 2 AM
+0 2 * * * curl -X POST "http://localhost:5000/api/integrations/wiz/sync" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"assetFilters":{"limit":1000}}'
+
+# Hourly vulnerability sync
+0 * * * * curl -X POST "http://localhost:5000/api/integrations/wiz/sync-vulnerabilities" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"severity":["CRITICAL","HIGH"],"limit":100}'
+```
+
+#### Integration Monitoring
+
+Monitor sync results and handle errors:
+```javascript
+// Example response from sync operation
+{
+  "message": "Wiz sync completed successfully",
+  "result": {
+    "assets": {
+      "imported": 45,
+      "updated": 12,
+      "errors": []
+    },
+    "vulnerabilities": {
+      "imported": 23,
+      "updated": 8,
+      "errors": ["Failed to sync vulnerability CVE-2023-1234: Asset not found"]
+    },
+    "alerts": {
+      "imported": 15,
+      "updated": 3,
+      "errors": []
+    },
+    "totalErrors": 1
+  }
+}
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**Authentication Failed**
+- Verify WIZ_CLIENT_ID and WIZ_CLIENT_SECRET are correct
+- Check if service account has necessary permissions
+- Ensure WIZ_AUDIENCE is set to "beyond-api"
+
+**No Data Imported**
+- Check Wiz filters in sync request
+- Verify Wiz account has data in specified cloud platforms
+- Review API rate limits and quotas
+
+**Partial Import Failures**
+- Check error messages in sync response
+- Verify asset relationships and dependencies
+- Review data mapping configurations
+
+#### Debug Mode
+
+Enable detailed logging for troubleshooting:
+```bash
+# Set debug environment variable
+DEBUG=wiz:* npm run dev
+
+# View detailed sync logs
+curl -X POST "http://localhost:5000/api/integrations/wiz/sync" \
+  -H "Content-Type: application/json" \
+  -d '{"debug": true}'
+```
 
 ### Code Quality
 - ESLint configuration for code standards
