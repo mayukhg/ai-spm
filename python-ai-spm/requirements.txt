@@ -1,0 +1,78 @@
+# AI Security Posture Management Platform - Python Dependencies
+# =============================================================
+
+# Core Flask Framework and Extensions
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-CORS==4.0.0
+Flask-Session==0.5.0
+
+# Database Support
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.7  # PostgreSQL adapter
+alembic==1.12.1         # Database migrations
+
+# Authentication and Security
+Werkzeug==2.3.7         # Password hashing and security utilities
+PyJWT==2.8.0            # JSON Web Tokens
+pyotp==2.9.0            # One-time passwords for MFA
+qrcode[pil]==7.4.2      # QR code generation for MFA setup
+cryptography==41.0.7    # Cryptographic functions
+
+# HTTP Client and API Integration
+requests==2.31.0        # HTTP library for external API calls
+urllib3==2.0.7          # HTTP client with connection pooling
+
+# Data Validation and Serialization
+marshmallow==3.20.1     # Object serialization/deserialization
+jsonschema==4.19.2      # JSON schema validation
+
+# Background Tasks and Scheduling
+Celery==5.3.4           # Distributed task queue
+redis==5.0.1            # Redis client for caching and message broker
+
+# Email Support
+Flask-Mail==0.9.1       # Email sending capabilities
+
+# Configuration and Environment
+python-dotenv==1.0.0    # Load environment variables from .env file
+pydantic==2.5.0         # Data validation using Python type annotations
+
+# Logging and Monitoring
+structlog==23.2.0       # Structured logging
+sentry-sdk[flask]==1.38.0  # Error tracking and performance monitoring
+
+# Development and Testing Dependencies
+pytest==7.4.3          # Testing framework
+pytest-flask==1.3.0    # Flask testing utilities
+pytest-cov==4.1.0      # Test coverage reporting
+factory-boy==3.3.0     # Test data factories
+faker==20.1.0           # Fake data generation for testing
+
+# Code Quality and Linting
+flake8==6.1.0           # Code linting
+black==23.11.0          # Code formatting
+isort==5.12.0           # Import sorting
+mypy==1.7.1             # Static type checking
+
+# Documentation
+Sphinx==7.2.6          # Documentation generation
+sphinx-rtd-theme==1.3.0  # Read the Docs theme
+
+# Production WSGI Server
+gunicorn==21.2.0        # Python WSGI HTTP Server
+
+# Utilities
+click==8.1.7            # Command line interface creation
+python-dateutil==2.8.2  # Date/time utilities
+pytz==2023.3            # Timezone definitions
+
+# Optional: Enhanced JSON support
+orjson==3.9.10          # Fast JSON serialization (optional)
+
+# Optional: Profiling and Performance
+py-spy==0.3.14          # Sampling profiler (optional, development only)
+
+# Version pinning for security
+certifi>=2023.7.22     # SSL certificate bundle
+setuptools>=68.0.0     # Package setup tools
