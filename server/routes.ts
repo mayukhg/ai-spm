@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { createWizIntegration } from "./integrations/wiz";
 import { z } from "zod";
 import { 
   insertAiAssetSchema,
@@ -453,6 +454,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       const logs = await storage.getAuditLogs(limit);
       res.json(logs);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Wiz Integration Endpoints
+  const wizIntegration = createWizIntegration();
+
+  // Sync all data from Wiz
+  app.post("/api/integrations/wiz/sync", requireRole(["ciso", "analyst"]), async (req, res, next) => {
+    try {
+      if (!wizIntegration) {
+        return res.status(400).json({ 
+          error: "Wiz integration not configured. Please set WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables." 
+        });
+      }
+
+      await logAction(req.user!.id, "wiz_full_sync", "integration", null, req.body);
+
+      const result = await wizIntegration.fullSync(req.body);
+      res.json({
+        message: "Wiz sync completed successfully",
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Sync only assets from Wiz
+  app.post("/api/integrations/wiz/sync-assets", requireRole(["ciso", "analyst", "engineer"]), async (req, res, next) => {
+    try {
+      if (!wizIntegration) {
+        return res.status(400).json({ 
+          error: "Wiz integration not configured. Please set WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables." 
+        });
+      }
+
+      await logAction(req.user!.id, "wiz_asset_sync", "integration", null, req.body);
+
+      const result = await wizIntegration.syncAssets(req.body);
+      res.json({
+        message: "Wiz asset sync completed successfully",
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Sync only vulnerabilities from Wiz
+  app.post("/api/integrations/wiz/sync-vulnerabilities", requireRole(["ciso", "analyst"]), async (req, res, next) => {
+    try {
+      if (!wizIntegration) {
+        return res.status(400).json({ 
+          error: "Wiz integration not configured. Please set WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables." 
+        });
+      }
+
+      await logAction(req.user!.id, "wiz_vulnerability_sync", "integration", null, req.body);
+
+      const result = await wizIntegration.syncVulnerabilities(req.body);
+      res.json({
+        message: "Wiz vulnerability sync completed successfully",
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Sync only security alerts from Wiz
+  app.post("/api/integrations/wiz/sync-alerts", requireRole(["ciso", "analyst"]), async (req, res, next) => {
+    try {
+      if (!wizIntegration) {
+        return res.status(400).json({ 
+          error: "Wiz integration not configured. Please set WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables." 
+        });
+      }
+
+      await logAction(req.user!.id, "wiz_alert_sync", "integration", null, req.body);
+
+      const result = await wizIntegration.syncSecurityAlerts(req.body);
+      res.json({
+        message: "Wiz security alert sync completed successfully",
+        result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get Wiz integration status
+  app.get("/api/integrations/wiz/status", requireAuth, async (req, res, next) => {
+    try {
+      const isConfigured = !!wizIntegration;
+      const hasCredentials = !!(process.env.WIZ_CLIENT_ID && process.env.WIZ_CLIENT_SECRET);
+      
+      res.json({
+        configured: isConfigured,
+        hasCredentials,
+        status: isConfigured ? "active" : "inactive",
+        message: isConfigured 
+          ? "Wiz integration is configured and ready" 
+          : "Wiz integration requires WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables"
+      });
     } catch (error) {
       next(error);
     }
