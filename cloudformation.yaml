@@ -1,0 +1,652 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform.
+  This template provisions a VPC, PostgreSQL RDS database, ECS Fargate service for the backend,
+  S3 bucket and CloudFront distribution for the frontend.
+
+Parameters:
+  DBPassword:
+    Type: String
+    Description: Password for the RDS PostgreSQL database. Must be at least 8 characters.
+    MinLength: 8
+    NoEcho: true
+
+  WizClientId:
+    Type: String
+    Description: (Optional) Wiz Client ID for Wiz integration.
+    Default: ""
+
+  WizClientSecret:
+    Type: String
+    Description: (Optional) Wiz Client Secret for Wiz integration.
+    Default: ""
+    NoEcho: true
+
+  DockerImageTag:
+    Type: String
+    Description: Docker image tag for the application (e.g., 'latest' or a specific version from ECR).
+    Default: "latest"
+
+  AppServerInstanceType:
+    Type: String
+    Description: EC2 instance type for the backend (if using EC2, e.g., 't3.micro'). This is for future flexibility, current template uses Fargate.
+    Default: "t3.micro" # Placeholder, as Fargate doesn't use traditional instance types directly for tasks
+
+  DesiredCount:
+    Type: Number
+    Description: Desired number of tasks for the backend ECS service.
+    Default: 1
+    MinValue: 1
+
+  SSLCertificateArn:
+    Type: String
+    Description: (Optional) ARN of the SSL certificate for CloudFront and ALB. If not provided, HTTP will be used (not recommended for production).
+    Default: ""
+
+Conditions:
+  CreateWizClientIdSecret: !Not [!Equals [!Ref WizClientId, ""]]
+  CreateWizClientSecretSecret: !Not [!Equals [!Ref WizClientSecret, ""]]
+  HasSSLCertificate: !Not [!Equals [!Ref SSLCertificateArn, ""]]
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-VPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-IGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Subnets - Two public and two private for high availability
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PublicSubnet1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PublicSubnet2
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PrivateSubnet1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PrivateSubnet2
+
+  # NAT Gateways for private subnets
+  EIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  EIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-NatGateway1
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-NatGateway2
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PublicRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  AssociatePublicSubnet1RouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  AssociatePublicSubnet2RouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PrivateRouteTable1
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  AssociatePrivateSubnet1RouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PrivateRouteTable2
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+
+  AssociatePrivateSubnet2RouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  # IAM Roles and Policies
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-ECSTaskExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  AppServerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-AppServerRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com # For ECS Tasks
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-AppServerSecretsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                # Restrict to specific secrets if ARNs are known/created by this template,
+                # or use a broader permission with conditions based on secret name patterns.
+                # For now, allowing access to secrets tagged by this stack or named with stack prefix.
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+              # Add other permissions if the app needs to interact with other AWS services
+              # - Effect: Allow
+              #   Action:
+              #     - s3:GetObject
+              #   Resource: !Sub arn:aws:s3:::your-app-specific-bucket/*
+
+  # Instance profile for EC2 (if used in the future, not for current Fargate setup)
+  AppServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${AWS::StackName}-AppServerInstanceProfile
+      Roles:
+        - !Ref AppServerRole
+
+  # Secrets Manager
+  DBPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/DBPassword
+      Description: "Database password for the AI-SPM application RDS instance"
+      SecretString: !Ref DBPassword
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DBPassword
+
+  SessionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/SESSION_SECRET
+      Description: "Session secret for the AI-SPM application"
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'sessionkey'
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SessionSecret
+
+  WizClientIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateWizClientIdSecret
+    Properties:
+      Name: !Sub ${AWS::StackName}/WIZ_CLIENT_ID
+      Description: "Wiz Client ID for AI-SPM integration"
+      SecretString: !Ref WizClientId
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-WizClientId
+
+  WizClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateWizClientSecretSecret
+    Properties:
+      Name: !Sub ${AWS::StackName}/WIZ_CLIENT_SECRET
+      Description: "Wiz Client Secret for AI-SPM integration"
+      SecretString: !Ref WizClientSecret
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-WizClientSecret
+
+  # RDS PostgreSQL Database
+  AppServerSecurityGroup: # Defined first as RDSSecurityGroup refers to it
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-AppServerSecurityGroup
+      GroupDescription: "Security group for the Application Server (ECS Tasks/ALB)"
+      VpcId: !Ref VPC
+      # Ingress rules will be added for ALB (HTTP/HTTPS)
+      # Egress to RDS will be implicitly allowed by RDS SG Ingress from this SG.
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AppServerSG
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for AI-SPM RDS instance"
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DBSubnetGroup
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-RDSSecurityGroup
+      GroupDescription: "Allow DB connections from AppServer"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-RDSSG
+
+  RDSPostgresInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub ${AWS::StackName}-db-instance
+      AllocatedStorage: "20" # Minimum 20 GiB
+      DBInstanceClass: db.t3.micro # Choose an appropriate instance class
+      Engine: postgres
+      EngineVersion: "14" # Specify your desired PostgreSQL version
+      MasterUsername: ai_spm_user
+      MasterUserPassword: !Ref DBPassword # Directly using the parameter for initial creation
+      DBName: ai_spm_db
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      PubliclyAccessible: false
+      StorageType: gp2
+      BackupRetentionPeriod: 7 # Days
+      DeleteAutomatedBackups: true # Set to false for production if you want to keep backups after deletion
+      DeletionPolicy: Snapshot # Or 'Delete' for non-prod. 'Snapshot' requires a final snapshot name.
+      # FinalDBSnapshotIdentifier: !Sub ${AWS::StackName}-final-snapshot-${AWS::Region} # Required if DeletionPolicy is Snapshot
+      CopyTagsToSnapshot: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-RDSInstance
+
+  # ECR Repository
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${AWS::StackName}/app-repository # You can customize the repository name
+      # It's good practice to set an image scanning configuration
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      # Lifecycle policy can be added to manage old images, e.g., remove untagged images older than X days
+      # LifecyclePolicy:
+      #   LifecyclePolicyText: |
+      #     {
+      #       "rules": [
+      #         {
+      #           "rulePriority": 1,
+      #           "description": "Keep only last 5 images",
+      #           "selection": {
+      #             "tagStatus": "any",
+      #             "countType": "imageCountMoreThan",
+      #             "countNumber": 5
+      #           },
+      #           "action": {
+      #             "type": "expire"
+      #           }
+      #         }
+      #       ]
+      #     }
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ECRRepository
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-Cluster
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ECSCluster
+
+  # ECS Task Definition
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AWS::StackName}-AppTask
+      Cpu: "256"  # 0.25 vCPU
+      Memory: "512" # 0.5 GB RAM
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole # Role for ECS agent to pull image, write logs
+      TaskRoleArn: !Ref AppServerRole             # Role for the application code itself
+      ContainerDefinitions:
+        - Name: !Sub ${AWS::StackName}-AppContainer
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${DockerImageTag}"
+          PortMappings:
+            - ContainerPort: 5000 # Assuming app listens on port 5000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: PORT
+              Value: "5000"
+            - Name: PGHOST
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+            - Name: PGPORT
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+            - Name: PGUSER
+              Value: ai_spm_user # Matches MasterUsername in RDS
+            - Name: PGDATABASE
+              Value: ai_spm_db   # Matches DBName in RDS
+            - Name: WIZ_CLIENT_ID
+              Value: !If [CreateWizClientIdSecret, !Ref WizClientId, ""]
+            - Name: WIZ_CLIENT_SECRET
+              Value: !If [CreateWizClientSecretSecret, !Ref WizClientSecret, ""]
+          Secrets: # Secrets to inject as environment variables
+            - Name: PGPASSWORD # App needs to read this env var
+              ValueFrom: !Ref DBPasswordSecret
+            - Name: SESSION_SECRET # App needs to read this env var
+              ValueFrom: !Ref SessionSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref AppLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ECSTaskDefinition
+
+  # Log Group for ECS Application
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}/app
+      RetentionInDays: 7 # Adjust as needed
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AppLogGroup
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${AWS::StackName}-AppService
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref AppServerSecurityGroup # Security group for the tasks themselves
+          AssignPublicIp: DISABLED # Tasks are in private subnets
+      LoadBalancers: # Will be configured to point to an ALB Target Group
+        - TargetGroupArn: !Ref ALBTargetGroup # ALBTargetGroup will be created in ALB section
+          ContainerName: !Sub ${AWS::StackName}-AppContainer
+          ContainerPort: 5000
+      HealthCheckGracePeriodSeconds: 60 # Give containers time to start before health checks fail deployment
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 50
+        MaximumPercent: 200
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ECSService
+    DependsOn:
+      # Ensure ALB Listener Rule (if separate) or ALB is created before service tries to attach
+      # For now, we'll add DependsOn to ALBListenerRule or ALB itself later.
+      # Let's assume ALBTargetGroup is enough for now.
+      - ALBTargetGroup # This will be created in step 10
+
+  # S3 Bucket for Frontend Static Assets
+  S3FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-frontend-assets-${AWS::AccountId}-${AWS::Region} # Globally unique bucket name
+      AccessControl: Private # Recommended: Use OAC with CloudFront instead of public bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration: # Optional if only accessed via CloudFront OAC
+        IndexDocument: index.html
+        ErrorDocument: index.html # For SPAs, redirect errors to index.html
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-FrontendS3Bucket
+    # DeletionPolicy: Retain # Recommended for production buckets
+    # UpdateReplacePolicy: Retain
+
+  # S3BucketPolicy: # We will use Origin Access Control (OAC) with CloudFront, so a public bucket policy is not preferred.
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket: !Ref S3FrontendBucket
+  #     PolicyDocument:
+  #       Statement:
+  #         - Sid: PublicReadGetObjectForCloudFront
+  #           Effect: Allow
+  #           Principal:
+  #             AWS: !Sub arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity EEXAMPLE # Replace with OAI if used
+  #           Action: s3:GetObject
+  #           Resource: !Sub arn:aws:s3:::${S3FrontendBucket}/*
+
+  # CloudFront Distribution
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-S3-OAC
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Distribution for ${AWS::StackName}
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: !Sub S3-${S3FrontendBucket} # S3 Origin
+            DomainName: !GetAtt S3FrontendBucket.RegionalDomainName # Use regional domain name for S3
+            S3OriginConfig:
+              OriginAccessIdentity: "" # Required to be empty string when using OAC
+            OriginAccessControlId: !Ref CloudFrontOriginAccessControl
+          # ALB Origin for API will be added later if we create a combined distribution.
+          # For now, focusing on S3 frontend.
+          # - Id: !Sub ALB-${AWS::StackName}
+          #   DomainName: !GetAtt ApplicationLoadBalancer.DNSName # ALB DNS
+          #   CustomOriginConfig:
+          #     HTTPPort: 80
+          #     HTTPSPort: 443
+          #     OriginProtocolPolicy: http-only # or https-only if ALB listener is HTTPS
+        DefaultCacheBehavior:
+          TargetOriginId: !Sub S3-${S3FrontendBucket}
+          ViewerProtocolPolicy: redirect-to-https # Recommended
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          DefaultTTL: 86400 # 1 day
+          MaxTTL: 31536000 # 1 year
+          MinTTL: 0
+        # Add CacheBehavior for API path /api/* to route to ALB later if needed
+        # - PathPattern: /api/*
+        #   TargetOriginId: !Sub ALB-${AWS::StackName} # ALB Origin ID
+        #   ViewerProtocolPolicy: redirect-to-https
+        #   AllowedMethods: ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+        #   CachedMethods: ['HEAD', 'OPTIONS'] # Cache OPTIONS for preflight
+        #   Compress: true
+        #   ForwardedValues:
+        #     QueryString: true
+        #     Headers: # Forward necessary headers for API
+        #       - Authorization
+        #       - Content-Type
+        #     Cookies:
+        #       Forward: all
+        #   DefaultTTL: 0
+        #   MaxTTL: 0
+        #   MinTTL: 0
+        ViewerCertificate: !If
+          - HasSSLCertificate
+          - ViewerCertificate:
+              AcmCertificateArn: !Ref SSLCertificateArn
+              SslSupportMethod: sni-only
+              MinimumProtocolVersion: TLSv1.2_2021
+          - ViewerCertificate: # Default to CloudFront owned certificate
+              CloudFrontDefaultCertificate: true
+        # Logging: # Optional: Configure access logging
+        #   Bucket: your-logging-bucket.s3.amazonaws.com
+        #   Prefix: !Sub ${AWS::StackName}/cloudfront-logs/
+        #   IncludeCookies: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-CloudFrontDistribution
+
+  S3BucketPolicyForCloudFrontOAC:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17" # AWS recommends using "2012-10-17" or newer
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${S3FrontendBucket}/*
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
