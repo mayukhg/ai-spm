@@ -258,6 +258,137 @@ npm run build
 npm start
 ```
 
+### AWS Deployment using CloudFormation
+
+This project includes a CloudFormation template (`cloudformation.yaml`) to automate the deployment of the entire application stack on AWS.
+
+**Overview:**
+
+The CloudFormation template provisions the following major resources:
+- A new VPC with public and private subnets, NAT Gateways, and an Internet Gateway.
+- An Amazon RDS PostgreSQL database instance (private).
+- An Amazon ECR repository to store your application's Docker image.
+- An Amazon ECS cluster with a Fargate service to run the Node.js backend application.
+- An Amazon S3 bucket to host the static frontend assets.
+- An Amazon CloudFront distribution to serve both frontend assets (from S3 via OAC) and API requests (routed to an Application Load Balancer).
+- An Application Load Balancer (ALB) to distribute traffic to the ECS backend.
+- Necessary IAM roles, security groups, and AWS Secrets Manager entries for credentials.
+
+**Prerequisites:**
+
+1.  **AWS Account & CLI:** An AWS account and the AWS CLI installed and configured with appropriate permissions to create the resources mentioned above.
+2.  **Docker:** Docker installed locally to build the application image. (Or a CI/CD system that can build Docker images).
+3.  **Node.js & npm/yarn:** Required to build the application assets locally before deployment (`npm run build`).
+4.  **jq (optional but recommended):** For easier parsing of AWS CLI JSON outputs.
+
+**Deployment Steps:**
+
+**Step 1: Build Application Assets and Docker Image**
+
+First, build your application's frontend and backend assets, and then build the Docker image using the provided `Dockerfile`.
+
+```bash
+# 1. Install dependencies (if not already done)
+npm install
+
+# 2. Build the application (creates ./dist directory with backend and ./dist/public for frontend)
+npm run build
+
+# 3. Build the Docker image (replace 'your-app-image-name' with your desired image name)
+docker build -t your-app-image-name:latest .
+```
+
+**Step 2: Push Docker Image to Amazon ECR**
+
+The CloudFormation stack will create an ECR repository. You'll need to push your image there.
+
+*   **If deploying for the first time:** You might need to deploy a minimal version of the stack first to create the ECR repository, or create it manually with the expected name (`<stack-name>/app-repository`).
+    Alternatively, you can use the AWS console or CLI to create the ECR repository named `your-stack-name/app-repository` (where `your-stack-name` is what you will name your CloudFormation stack) before the first full deployment.
+
+*   **To get the ECR repository URI after it's created by CloudFormation:**
+    (Note: It's recommended to add `ECRRepositoryUri` to the `Outputs` section of `cloudformation.yaml` for easier retrieval.)
+    ```bash
+    aws ecr describe-repositories --repository-names "<your-stack-name>/app-repository" --query "repositories[0].repositoryUri" --output text
+    ```
+    (Replace `<your-stack-name>` with the name you'll give your CloudFormation stack). Let this be `ECR_REPOSITORY_URI`.
+
+*   **Tag and Push the image:**
+    ```bash
+    # Login to ECR (replace <aws_account_id> and <aws_region>)
+    aws ecr get-login-password --region <aws_region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<aws_region>.amazonaws.com
+
+    # Tag your local image
+    docker tag your-app-image-name:latest ${ECR_REPOSITORY_URI}:latest
+    # Example: docker tag your-app-image-name:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-ai-spm-stack/app-repository:latest
+
+    # Push the image
+    docker push ${ECR_REPOSITORY_URI}:latest
+    ```
+    Make sure the tag you push (e.g., `latest`) matches the `DockerImageTag` parameter you'll use for the CloudFormation stack.
+
+**Step 3: Deploy Frontend Assets to S3**
+
+The CloudFormation stack also creates an S3 bucket for your frontend assets.
+
+*   **To get the S3 bucket name after it's created by CloudFormation:**
+    The bucket name is constructed as `<stack-name>-frontend-assets-<aws_account_id>-<aws_region>`.
+    (Note: It's recommended to add `S3FrontendBucketName` to the `Outputs` section of `cloudformation.yaml` for easier retrieval.)
+    You can also find it in the CloudFormation stack outputs if defined, or via the AWS console.
+
+*   **Upload assets:**
+    The frontend assets are in the `./dist/public/` directory after `npm run build`.
+    ```bash
+    aws s3 sync ./dist/public/ s3://<your-s3-bucket-name>/ --delete
+    ```
+    (Replace `<your-s3-bucket-name>` with the actual bucket name).
+
+**Step 4: Deploy the CloudFormation Stack**
+
+Now, deploy the main CloudFormation stack using the `cloudformation.yaml` file.
+
+```bash
+aws cloudformation deploy \
+  --template-file cloudformation.yaml \
+  --stack-name <your-stack-name> \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    DBPassword=<your-secure-database-password> \
+    DockerImageTag=latest \
+    # WizClientId=<your-wiz-client-id> (Optional) \
+    # WizClientSecret=<your-wiz-client-secret> (Optional) \
+    # SSLCertificateArn=<arn-of-your-acm-ssl-certificate> (Optional, for HTTPS on custom domain) \
+  --region <aws_region>
+```
+
+**Key Parameters:**
+*   `DBPassword`: A strong password for the RDS database master user.
+*   `DockerImageTag`: The tag of the Docker image you pushed to ECR (e.g., `latest`).
+*   `WizClientId` (Optional): Your Wiz Client ID if using the Wiz integration.
+*   `WizClientSecret` (Optional): Your Wiz Client Secret.
+*   `SSLCertificateArn` (Optional): If you have a custom domain and want HTTPS, provide the ARN of an ACM SSL certificate. For CloudFront with a custom domain, the certificate must be in `us-east-1`. The ALB, also using this parameter, requires a certificate in its own region. Ensure your certificate strategy aligns with this.
+
+**Step 5: Accessing Your Application**
+
+Once the stack is successfully deployed:
+1.  Navigate to the AWS CloudFormation console, select your stack, and go to the "Outputs" tab.
+2.  You should find an output for `CloudFrontURL` (or similar). This is the main URL for your application.
+    (Note: The `Outputs` section in `cloudformation.yaml` must be populated with `CloudFrontURL`, `ECRRepositoryUri`, `S3FrontendBucketName` etc., for easy access.)
+
+**Updating the Stack:**
+
+To update the application:
+1.  Re-build your Docker image and push it to ECR with a new tag or overwrite the existing tag (e.g., `latest`).
+2.  Re-deploy frontend assets to S3 if they have changed.
+3.  Re-run the `aws cloudformation deploy` command. If you only changed the `DockerImageTag` or application code (requiring a new image/S3 assets), you might not need to change other parameters. CloudFormation will update the ECS service to pull the new image.
+
+**Deleting the Stack:**
+
+To remove all resources created by the template:
+```bash
+aws cloudformation delete-stack --stack-name <your-stack-name> --region <aws_region>
+```
+**Note:** S3 buckets might not be deleted if they contain objects. You may need to empty the S3 bucket first. Similarly, ECR repositories with images might require manual cleanup if not set to auto-delete on stack deletion (not default). The RDS instance has a `DeletionPolicy` which you might want to set to `Delete` for non-production environments to avoid manual snapshot cleanup or costs.
+
 ## Usage Guide
 
 ### Initial Setup
