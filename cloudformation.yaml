@@ -650,3 +650,107 @@ Resources:
             Condition:
               StringEquals:
                 "AWS:SourceArn": !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  # Application Load Balancer
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-ALBSecurityGroup
+      GroupDescription: "Allow HTTP/HTTPS to ALB"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ALBSG
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${AWS::StackName}-ALB
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '60'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ALB
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${AWS::StackName}-AppTargetGroup
+      VpcId: !Ref VPC
+      Protocol: HTTP
+      Port: 5000 # Port the ECS tasks are listening on
+      HealthCheckPath: /api/health # Placeholder - ensure your app has a health check endpoint
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-299
+      TargetType: ip # For Fargate
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ALBTG
+    DependsOn: # Ensure AppServerSecurityGroup is created before target group tries to use it implicitly for health checks
+      - AppServerSecurityGroup
+
+  # Listener for HTTP (redirects to HTTPS if SSL cert is provided)
+  ALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - !If # If SSL cert exists, redirect HTTP to HTTPS, else forward to ECS for API (or fixed response if no API default)
+          - HasSSLCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: "443"
+              StatusCode: HTTP_301
+          - Type: forward # If no SSL, forward /api/* to ECS, default might be fixed response
+            TargetGroupArn: !Ref ALBTargetGroup # This default action might need adjustment based on actual domain strategy
+            # Or, for a scenario where CloudFront is the entry point, this listener might only have specific rules
+            # and no general default forward to ECS.
+            # Let's assume for now API is the primary purpose of ALB.
+
+  # Listener for HTTPS (conditional)
+  ALBListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasSSLCertificate # Only create if SSLCertificateArn is provided
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref SSLCertificateArn
+      SslPolicy: ELBSecurityPolicy-2016-08 # Choose an appropriate SSL policy
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup # Default to forwarding to the App server for API traffic
+
+  # Update AppServerSecurityGroup to allow traffic from ALB
+  AppServerSecurityGroupIngressFromALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppServerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5000 # ECS Task port
+      ToPort: 5000
+      SourceSecurityGroupId: !Ref ALBSecurityGroup # Allow from ALB's SG
