@@ -26,6 +26,26 @@ export interface GatewayRequest extends Request {
 /**
  * Service registry for microservices management
  */
+export class ServiceProxy {
+  constructor(private registry: MicroserviceRegistry) {}
+
+  async proxyRequest(serviceName: string, path: string, method: string, body?: any): Promise<any> {
+    // Simplified proxy for development - in production this would make actual HTTP calls
+    console.log(`Proxying ${method} ${path} to ${serviceName} service`);
+    
+    // Return mock response for development
+    return {
+      json: async () => ({
+        message: `${serviceName} service response`,
+        service: serviceName,
+        path,
+        method,
+        timestamp: new Date().toISOString()
+      })
+    };
+  }
+}
+
 export class MicroserviceRegistry {
   private services: Map<string, ServiceConfig> = new Map();
   private healthStatus: Map<string, boolean> = new Map();

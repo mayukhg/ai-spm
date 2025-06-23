@@ -1,6 +1,6 @@
 # AI Security Posture Management (AI-SPM) Platform
 
-A comprehensive enterprise-grade security platform designed to manage, monitor, and secure AI/ML assets throughout their lifecycle. The platform provides real-time threat detection, vulnerability management, compliance monitoring, and governance controls for AI systems.
+A comprehensive enterprise-grade security platform built with a hybrid microservices architecture, designed to manage, monitor, and secure AI/ML assets throughout their lifecycle. The platform combines Node.js performance for web services with Python's AI/ML expertise in specialized microservices.
 
 ## Features
 

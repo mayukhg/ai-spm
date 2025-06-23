@@ -13,13 +13,13 @@ import {
   insertGovernancePolicySchema
 } from "@shared/schema";
 import { 
-  ServiceRegistry, 
+  MicroserviceRegistry, 
   ServiceProxy, 
   gatewayMiddleware, 
   gatewayErrorHandler,
   createHealthEndpoint,
   type GatewayRequest
-} from "./gateway";
+} from "./microservices-gateway";
 
 /**
  * Middleware to ensure user is authenticated
@@ -467,24 +467,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wiz Integration Endpoints
-  const wizIntegration = createWizIntegration();
+  // Microservices Integration Endpoints
+  const serviceRegistry = new MicroserviceRegistry();
+  const serviceProxy = new ServiceProxy(serviceRegistry);
 
-  // Sync all data from Wiz
-  app.post("/api/integrations/wiz/sync", requireRole(["ciso", "analyst"]), async (req, res, next) => {
+  // AI Scanner Microservice Endpoints
+  app.post("/api/ai-scanner/scan", requireAuth, async (req: GatewayRequest, res, next) => {
     try {
-      if (!wizIntegration) {
-        return res.status(400).json({ 
-          error: "Wiz integration not configured. Please set WIZ_CLIENT_ID and WIZ_CLIENT_SECRET environment variables." 
-        });
-      }
+      const scanRequest = {
+        asset_id: req.body.asset_id,
+        asset_type: req.body.asset_type,
+        framework: req.body.framework,
+        model_path: req.body.model_path,
+        scan_depth: req.body.scan_depth || "standard",
+        correlation_id: req.correlationId
+      };
 
-      await logAction(req.user!.id, "wiz_full_sync", "integration", undefined, req.body);
+      await logAction(req.user!.id, "ai_scan_started", "ai_assets", scanRequest.asset_id, scanRequest);
 
-      const result = await wizIntegration.fullSync(req.body);
+      const response = await serviceProxy.proxyRequest(
+        "ai-scanner", 
+        "/scan", 
+        "POST", 
+        scanRequest,
+        { "Authorization": `Bearer ${req.headers.authorization?.replace('Bearer ', '')}` }
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/ai-scanner/scan/:scanId", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const response = await serviceProxy.proxyRequest(
+        "ai-scanner", 
+        `/scan/${req.params.scanId}`, 
+        "GET"
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Data Integrity Microservice Endpoints
+  app.post("/api/data-integrity/check", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const checkRequest = {
+        asset_id: req.body.asset_id,
+        data_source: req.body.data_source,
+        check_type: req.body.check_type,
+        dataset_path: req.body.dataset_path,
+        baseline_path: req.body.baseline_path,
+        schema_definition: req.body.schema_definition,
+        privacy_requirements: req.body.privacy_requirements,
+        correlation_id: req.correlationId
+      };
+
+      await logAction(req.user!.id, "data_integrity_check_started", "ai_assets", checkRequest.asset_id, checkRequest);
+
+      const response = await serviceProxy.proxyRequest(
+        "data-integrity", 
+        "/check", 
+        "POST", 
+        checkRequest
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/data-integrity/check/:checkId", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const response = await serviceProxy.proxyRequest(
+        "data-integrity", 
+        `/check/${req.params.checkId}`, 
+        "GET"
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Wiz Integration Microservice Endpoints
+  app.post("/api/wiz-integration/integrate", requireRole(["ciso", "analyst"]), async (req: GatewayRequest, res, next) => {
+    try {
+      const integrationRequest = {
+        asset_id: req.body.asset_id,
+        integration_type: req.body.integration_type || "sync",
+        cloud_provider: req.body.cloud_provider,
+        resource_filters: req.body.resource_filters,
+        sync_scope: req.body.sync_scope,
+        correlation_id: req.correlationId
+      };
+
+      await logAction(req.user!.id, "wiz_integration_started", "integrations", undefined, integrationRequest);
+
+      const response = await serviceProxy.proxyRequest(
+        "wiz-integration", 
+        "/integrate", 
+        "POST", 
+        integrationRequest
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Compliance Engine Microservice Endpoints
+  app.post("/api/compliance/assess", requireRole(["ciso", "compliance_officer"]), async (req: GatewayRequest, res, next) => {
+    try {
+      const assessmentRequest = {
+        asset_id: req.body.asset_id,
+        framework: req.body.framework,
+        assessment_type: req.body.assessment_type || "full",
+        scope: req.body.scope,
+        baseline_date: req.body.baseline_date,
+        correlation_id: req.correlationId
+      };
+
+      await logAction(req.user!.id, "compliance_assessment_started", "ai_assets", assessmentRequest.asset_id, assessmentRequest);
+
+      const response = await serviceProxy.proxyRequest(
+        "compliance-engine", 
+        "/assess", 
+        "POST", 
+        assessmentRequest
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/compliance/assessment/:assessmentId", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const response = await serviceProxy.proxyRequest(
+        "compliance-engine", 
+        `/assessment/${req.params.assessmentId}`, 
+        "GET"
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/compliance/frameworks", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const response = await serviceProxy.proxyRequest(
+        "compliance-engine", 
+        "/frameworks", 
+        "GET"
+      );
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Microservices Health Check Endpoint
+  app.get("/api/microservices/health", requireAuth, async (req: GatewayRequest, res, next) => {
+    try {
+      const healthStatus = serviceRegistry.getHealthStatus();
+      
       res.json({
-        message: "Wiz sync completed successfully",
-        result,
+        gateway_status: "healthy",
+        services: healthStatus,
+        timestamp: new Date().toISOString(),
+        total_services: Object.keys(healthStatus).length,
+        healthy_services: Object.values(healthStatus).filter(status => status).length
       });
     } catch (error) {
       next(error);
