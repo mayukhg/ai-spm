@@ -1,6 +1,6 @@
 # AI Security Posture Management (AI-SPM) Platform
 
-A comprehensive enterprise-grade security platform built with a hybrid microservices architecture, designed to manage, monitor, and secure AI/ML assets throughout their lifecycle. The platform combines Node.js performance for web services with Python's AI/ML expertise in specialized microservices.
+A comprehensive enterprise-grade security platform built with a **hybrid microservices architecture**, designed to manage, monitor, and secure AI/ML assets throughout their lifecycle. The platform strategically combines Node.js for high-performance web services and authentication with Python microservices for specialized AI/ML security tasks.
 
 ## Features
 
@@ -37,9 +37,19 @@ A comprehensive enterprise-grade security platform built with a hybrid microserv
 - **Integration Ready**: APIs for third-party security tools and enterprise systems
 - **Scalable Architecture**: Designed for enterprise-scale deployments
 
-## Technology Stack
+## Hybrid Microservices Architecture
 
-### Frontend
+### Architecture Overview
+The platform implements a modern hybrid microservices architecture that optimizes for both performance and specialization:
+
+- **Node.js API Gateway**: Handles web services, authentication, and data management
+- **Python Microservices**: Specialized services for AI/ML security tasks
+- **React Frontend**: Modern, responsive user interface
+- **PostgreSQL Database**: Centralized data storage with ORM integration
+
+### Technology Stack
+
+#### Frontend Layer
 - **React 18** - Modern component-based UI framework
 - **TypeScript** - Type-safe development with enhanced developer experience
 - **Tailwind CSS** - Utility-first styling with responsive design
@@ -48,14 +58,63 @@ A comprehensive enterprise-grade security platform built with a hybrid microserv
 - **React Hook Form** - Performant forms with validation
 - **Recharts** - Interactive data visualization
 
-### Backend
-- **Node.js** - High-performance JavaScript runtime
+#### Node.js API Gateway & Web Services
+- **Node.js 18+** - High-performance JavaScript runtime
 - **Express.js** - Fast, unopinionated web framework
 - **TypeScript** - End-to-end type safety
 - **Passport.js** - Comprehensive authentication strategies
 - **Drizzle ORM** - Type-safe database operations
-- **PostgreSQL** - Enterprise-grade relational database
 - **Zod** - Runtime type validation and parsing
+
+#### Python Microservices
+- **FastAPI** - High-performance async web framework
+- **Python 3.9+** - AI/ML ecosystem compatibility
+- **Pydantic** - Data validation and settings management
+- **Uvicorn** - ASGI server for production deployment
+- **Httpx** - Modern HTTP client for service communication
+
+#### Data Layer
+- **PostgreSQL 13+** - Enterprise-grade relational database
+- **Connection pooling** - Optimized database connections
+- **Database migrations** - Version-controlled schema management
+
+### Microservices Architecture
+
+#### 🤖 AI Scanner Service (Port 8001)
+- **Purpose**: AI/ML model security analysis and bias detection
+- **Technology**: FastAPI, Python 3.9+
+- **Capabilities**:
+  - Model vulnerability scanning
+  - Bias detection and fairness analysis
+  - Security risk assessment
+  - Model performance monitoring
+
+#### 🔍 Data Integrity Service (Port 8002)
+- **Purpose**: Data quality monitoring and anomaly detection
+- **Technology**: FastAPI, Python 3.9+
+- **Capabilities**:
+  - Data quality validation
+  - Anomaly detection algorithms
+  - Data drift monitoring
+  - Integrity reporting
+
+#### 🔗 Wiz Integration Service (Port 8003)
+- **Purpose**: External security platform integration
+- **Technology**: FastAPI, Python 3.9+, Httpx
+- **Capabilities**:
+  - Wiz API data transformation
+  - Security alert processing
+  - Cloud security posture integration
+  - Real-time data synchronization
+
+#### 📋 Compliance Engine (Port 8004)
+- **Purpose**: Automated compliance assessment and policy evaluation
+- **Technology**: FastAPI, Python 3.9+
+- **Capabilities**:
+  - Multi-framework compliance checking
+  - Policy rule evaluation
+  - Automated assessment workflows
+  - Compliance reporting
 
 ## Project Structure
 
@@ -64,6 +123,7 @@ A comprehensive enterprise-grade security platform built with a hybrid microserv
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
 │   │   │   ├── charts/     # Data visualization components
+│   │   │   ├── dashboard/  # Dashboard-specific components
 │   │   │   ├── layout/     # Layout components (sidebar, header)
 │   │   │   └── ui/         # Base UI components (shadcn)
 │   │   ├── hooks/          # Custom React hooks
@@ -82,16 +142,32 @@ A comprehensive enterprise-grade security platform built with a hybrid microserv
 │   │   │   ├── monitoring.tsx    # Real-time monitoring
 │   │   │   └── auth-page.tsx     # Authentication
 │   │   └── types/          # TypeScript type definitions
-├── server/                 # Backend Express application
+├── server/                 # Node.js API Gateway
 │   ├── auth.ts            # Authentication middleware
 │   ├── db.ts              # Database connection
 │   ├── routes.ts          # API route definitions
 │   ├── storage.ts         # Data access layer
+│   ├── gateway.ts         # Microservices gateway
+│   ├── microservices-gateway.ts # Service discovery
 │   ├── index.ts           # Server entry point
 │   └── vite.ts            # Development server setup
-├── shared/                # Shared code between client/server
+├── microservices/         # Python Microservices
+│   ├── ai-scanner/        # AI security analysis service
+│   │   ├── main.py        # FastAPI application
+│   │   └── requirements.txt
+│   ├── data-integrity/    # Data quality monitoring service
+│   │   ├── main.py        # FastAPI application
+│   │   └── requirements.txt
+│   ├── wiz-integration/   # External integration service
+│   │   ├── main.py        # FastAPI application
+│   │   └── requirements.txt
+│   └── compliance-engine/ # Compliance assessment service
+│       ├── main.py        # FastAPI application
+│       └── requirements.txt
+├── shared/                # Shared code between services
 │   └── schema.ts          # Database schema and validation
 ├── ARCHITECTURE.md        # Detailed system architecture
+├── ARCHITECTURE_DIAGRAM.md # Visual architecture diagram
 └── package.json           # Dependencies and scripts
 ```
 
@@ -181,24 +257,57 @@ GET  /api/dashboard/metrics         # Dashboard statistics
 GET  /api/audit-logs               # System audit logs
 ```
 
-### Wiz Integration Endpoints
+### Legacy Integration Endpoints (Redirected to Microservices)
 ```
 GET  /api/integrations/wiz/status              # Check Wiz integration status
-POST /api/integrations/wiz/sync                # Full sync (assets, vulns, alerts)
-POST /api/integrations/wiz/sync-assets         # Sync only assets
-POST /api/integrations/wiz/sync-vulnerabilities # Sync only vulnerabilities  
-POST /api/integrations/wiz/sync-alerts         # Sync only security alerts
+POST /api/integrations/wiz/sync-assets         # Redirects to microservice
+POST /api/integrations/wiz/sync-vulnerabilities # Redirects to microservice
+```
+
+### Microservices API Endpoints
+
+#### AI Scanner Service (Port 8001)
+```
+POST /scan/model           # Analyze AI model for security vulnerabilities
+POST /scan/bias            # Detect bias in AI model predictions
+GET  /scan/status/:id      # Get scan status and results
+GET  /health               # Service health check
+```
+
+#### Data Integrity Service (Port 8002)
+```
+POST /check/quality        # Validate data quality
+POST /check/anomalies      # Detect data anomalies
+POST /check/drift          # Monitor data drift
+GET  /health               # Service health check
+```
+
+#### Wiz Integration Service (Port 8003)
+```
+POST /integrate            # Process Wiz platform data
+POST /transform/alerts     # Transform security alerts
+POST /sync/assets          # Synchronize asset data
+GET  /health               # Service health check
+```
+
+#### Compliance Engine (Port 8004)
+```
+POST /assess/framework     # Assess compliance against framework
+POST /evaluate/policy      # Evaluate policy compliance
+GET  /frameworks           # List available compliance frameworks
+GET  /health               # Service health check
 ```
 
 ## Installation & Setup
 
 ### Prerequisites
-- Node.js 18+ 
-- PostgreSQL 13+
-- npm or yarn package manager
+- **Node.js 18+** - For API Gateway and frontend
+- **Python 3.9+** - For microservices
+- **PostgreSQL 13+** - Database server
+- **npm or yarn** - Package manager
 
 ### Environment Configuration
-Create a `.env` file with the following variables:
+Create a `.env` file in the project root:
 ```bash
 # Database Configuration
 DATABASE_URL=postgresql://username:password@localhost:5432/ai_spm
@@ -215,6 +324,12 @@ SESSION_SECRET=your_session_secret_key
 NODE_ENV=development
 PORT=5000
 
+# Microservices Configuration
+AI_SCANNER_URL=http://localhost:8001
+DATA_INTEGRITY_URL=http://localhost:8002
+WIZ_INTEGRATION_URL=http://localhost:8003
+COMPLIANCE_ENGINE_URL=http://localhost:8004
+
 # Wiz Integration (Optional)
 WIZ_CLIENT_ID=your_wiz_client_id
 WIZ_CLIENT_SECRET=your_wiz_client_secret
@@ -223,14 +338,14 @@ WIZ_AUDIENCE=beyond-api
 
 ### Installation Steps
 
-1. **Clone and Install Dependencies**
+#### 1. Clone and Install Node.js Dependencies
 ```bash
 git clone <repository-url>
 cd ai-spm-platform
 npm install
 ```
 
-2. **Database Setup**
+#### 2. Database Setup
 ```bash
 # Create PostgreSQL database
 createdb ai_spm
@@ -239,15 +354,67 @@ createdb ai_spm
 npm run db:push
 ```
 
-3. **Start Development Server**
+#### 3. Set Up Python Microservices
+Each microservice requires Python dependencies:
+
+```bash
+# AI Scanner Service
+cd microservices/ai-scanner
+pip install -r requirements.txt
+
+# Data Integrity Service
+cd ../data-integrity
+pip install -r requirements.txt
+
+# Wiz Integration Service
+cd ../wiz-integration
+pip install -r requirements.txt
+
+# Compliance Engine
+cd ../compliance-engine
+pip install -r requirements.txt
+cd ../..
+```
+
+#### 4. Start the Platform
+
+**Option A: Start All Services (Recommended for Development)**
+```bash
+# Terminal 1: Start main application (API Gateway + Frontend)
+npm run dev
+
+# Terminal 2: Start AI Scanner microservice
+cd microservices/ai-scanner && python main.py
+
+# Terminal 3: Start Data Integrity microservice
+cd microservices/data-integrity && python main.py
+
+# Terminal 4: Start Wiz Integration microservice
+cd microservices/wiz-integration && python main.py
+
+# Terminal 5: Start Compliance Engine microservice
+cd microservices/compliance-engine && python main.py
+```
+
+**Option B: Start Main Application Only**
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5000`
+The main application will be available at `http://localhost:5000`
+
+#### 5. Verify Installation
+- **Frontend**: Navigate to `http://localhost:5000`
+- **API Gateway**: Check `http://localhost:5000/api/health`
+- **Microservices Health**:
+  - AI Scanner: `http://localhost:8001/health`
+  - Data Integrity: `http://localhost:8002/health`
+  - Wiz Integration: `http://localhost:8003/health`
+  - Compliance Engine: `http://localhost:8004/health`
 
 ### Production Deployment
 
+#### Option 1: Full Stack Deployment
 1. **Build Application**
 ```bash
 npm run build
@@ -257,6 +424,56 @@ npm run build
 ```bash
 npm start
 ```
+
+3. **Deploy Python Microservices**
+```bash
+# Deploy each microservice to your container platform
+# Example using Docker:
+docker build -t ai-scanner microservices/ai-scanner/
+docker build -t data-integrity microservices/data-integrity/
+docker build -t wiz-integration microservices/wiz-integration/
+docker build -t compliance-engine microservices/compliance-engine/
+
+# Run containers with appropriate port mappings
+docker run -d -p 8001:8001 ai-scanner
+docker run -d -p 8002:8002 data-integrity  
+docker run -d -p 8003:8003 wiz-integration
+docker run -d -p 8004:8004 compliance-engine
+```
+
+#### Option 2: API Gateway Only (Microservices Optional)
+The platform can run with just the Node.js API Gateway if microservices are not needed:
+```bash
+npm run build
+npm start
+```
+
+## Architecture Benefits
+
+### 🎯 **Technology Optimization**
+- **Node.js**: Optimized for high-throughput web services and real-time data
+- **Python**: Leverages rich AI/ML ecosystem for specialized security tasks
+- **React**: Modern, responsive user interface with excellent developer experience
+
+### 🚀 **Scalability & Performance** 
+- **Independent Scaling**: Scale web services and AI services based on different demand patterns
+- **Resource Optimization**: Allocate resources efficiently based on service requirements
+- **Load Distribution**: Distribute processing across multiple specialized services
+
+### 🔧 **Development & Maintenance**
+- **Team Specialization**: Web developers work on Node.js, AI/ML experts on Python services
+- **Independent Deployment**: Deploy and update services independently
+- **Clear Boundaries**: Well-defined service responsibilities and interfaces
+
+### 🛡️ **Enterprise Security**
+- **Service Isolation**: Security issues in one service don't affect others
+- **Centralized Authentication**: Single point of authentication through API Gateway
+- **Audit Trail**: Comprehensive logging across all services
+
+### 🔄 **Integration Flexibility**
+- **API-First Design**: RESTful APIs for easy integration with existing systems  
+- **Protocol Standardization**: Consistent HTTP/JSON communication
+- **Service Discovery**: Automatic service registration and discovery
 
 ### AWS Deployment using CloudFormation
 
