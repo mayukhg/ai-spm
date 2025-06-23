@@ -12,6 +12,14 @@ import {
   insertComplianceAssessmentSchema,
   insertGovernancePolicySchema
 } from "@shared/schema";
+import { 
+  ServiceRegistry, 
+  ServiceProxy, 
+  gatewayMiddleware, 
+  gatewayErrorHandler,
+  createHealthEndpoint,
+  type GatewayRequest
+} from "./gateway";
 
 /**
  * Middleware to ensure user is authenticated
