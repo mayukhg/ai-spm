@@ -1,102 +1,123 @@
-# AWS Architecture Diagram
+# AI-SPM Hybrid Microservices Architecture
 
-This diagram illustrates the AWS architecture for the AI Security Posture Management (AI-SPM) platform, as defined by the CloudFormation template.
+This diagram illustrates the modern hybrid microservices architecture for the AI Security Posture Management (AI-SPM) platform, featuring Node.js for web services and Python for AI-specific tasks.
 
-## Diagram
+## Architecture Overview
+
+The platform uses a hybrid approach with:
+- **Node.js API Gateway** for web services, authentication, and data management
+- **Python Microservices** for specialized AI/ML tasks
+- **React Frontend** with modern UI components
+- **PostgreSQL Database** for persistent data storage
+
+## Architecture Diagram
 
 To view the diagram, use a Markdown preview tool with Mermaid support, or paste the code block below into the Mermaid Live Editor (https://mermaid.live).
 
 ```mermaid
-graph TD
-    subgraph User Facing
-        User["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/user.svg' width='40' height='40' /><br/>User"]
+graph TB
+    subgraph "Frontend Layer"
+        Frontend["🌐 React Frontend<br/>Modern UI with shadcn/ui<br/>Authentication & Dashboard"]
     end
 
-    subgraph CDN Layer
-        CloudFront["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> CloudFront Distribution"]
+    subgraph "Authentication & Session"
+        Auth["🔐 Authentication Service<br/>Session Management<br/>Role-based Access Control"]
     end
 
-    subgraph Application Load Balancer Layer
-        ALB["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> Application Load Balancer (ALB)"]
+    subgraph "API Gateway Layer"
+        Gateway["⚡ Node.js API Gateway<br/>Express.js Server<br/>Route Management<br/>Request Validation"]
     end
 
-    subgraph Frontend Hosting Layer [AWS S3]
-        S3_Bucket["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> S3 Bucket (Frontend Assets)"]
+    subgraph "Core Services Layer"
+        WebServices["🌍 Web Services<br/>Asset Management<br/>Vulnerability Tracking<br/>Compliance Reporting<br/>Dashboard APIs"]
     end
 
-    subgraph Backend Compute Layer [AWS ECS on Fargate in Private Subnets]
-        ECS_Service["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> ECS Service (Fargate Tasks)"]
-        AppContainer["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/box.svg' width='20' height='20' /><br/>Node.js App Container"]
+    subgraph "Python Microservices"
+        AIScanner["🤖 AI Scanner Service<br/>Port: 8001<br/>FastAPI<br/>Model Security Analysis<br/>Bias Detection"]
+        
+        DataIntegrity["🔍 Data Integrity Service<br/>Port: 8002<br/>FastAPI<br/>Data Quality Checks<br/>Anomaly Detection"]
+        
+        WizIntegration["🔗 Wiz Integration Service<br/>Port: 8003<br/>FastAPI<br/>External API Data Transform<br/>Security Alert Processing"]
+        
+        ComplianceEngine["📋 Compliance Engine<br/>Port: 8004<br/>FastAPI<br/>Policy Evaluation<br/>Automated Assessments"]
     end
 
-    ECS_Service --> AppContainer
-
-    subgraph Database Layer [AWS RDS in Private Subnets]
-        RDS_PostgreSQL["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> RDS PostgreSQL"]
+    subgraph "Data Layer"
+        PostgreSQL["🗄️ PostgreSQL Database<br/>Drizzle ORM<br/>Asset Inventory<br/>Vulnerability Data<br/>Compliance Records"]
     end
 
-    subgraph Networking [AWS VPC]
-        PublicSubnets["Public Subnets"]
-        PrivateSubnets["Private Subnets"]
-        NAT_Gateway["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> NAT Gateway"]
-        IGW["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> Internet Gateway"]
+    subgraph "External Integrations"
+        WizAPI["🛡️ Wiz Security Platform<br/>Cloud Security Posture<br/>Vulnerability Data"]
+        MLModels["🧠 AI/ML Models<br/>Security Analysis<br/>Risk Assessment"]
     end
 
-    ALB --> PublicSubnets
-    NAT_Gateway --> PublicSubnets
-    PublicSubnets --> IGW
-    ECS_Service --> PrivateSubnets
-    RDS_PostgreSQL --> PrivateSubnets
-    PrivateSubnets --> NAT_Gateway
+    %% User Flow
+    Frontend --> Auth
+    Auth --> Gateway
+    Gateway --> WebServices
+    
+    %% Microservices Communication
+    Gateway --> AIScanner
+    Gateway --> DataIntegrity
+    Gateway --> WizIntegration
+    Gateway --> ComplianceEngine
+    
+    %% Data Access
+    WebServices --> PostgreSQL
+    AIScanner --> PostgreSQL
+    DataIntegrity --> PostgreSQL
+    WizIntegration --> PostgreSQL
+    ComplianceEngine --> PostgreSQL
+    
+    %% External Communications
+    WizIntegration --> WizAPI
+    AIScanner --> MLModels
+    
+    %% Service Discovery & Communication
+    Gateway -.->|HTTP/REST| AIScanner
+    Gateway -.->|HTTP/REST| DataIntegrity
+    Gateway -.->|HTTP/REST| WizIntegration
+    Gateway -.->|HTTP/REST| ComplianceEngine
 
+    %% Styling
+    classDef frontend fill:#61dafb,stroke:#333,stroke-width:2px,color:#000
+    classDef auth fill:#f39c12,stroke:#333,stroke-width:2px,color:#fff
+    classDef gateway fill:#2ecc71,stroke:#333,stroke-width:2px,color:#fff
+    classDef webservice fill:#3498db,stroke:#333,stroke-width:2px,color:#fff
+    classDef microservice fill:#9b59b6,stroke:#333,stroke-width:2px,color:#fff
+    classDef database fill:#e74c3c,stroke:#333,stroke-width:2px,color:#fff
+    classDef external fill:#95a5a6,stroke:#333,stroke-width:2px,color:#fff
 
-    subgraph Security & Management
-        IAM["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> IAM (Roles & Policies)"]
-        SecretsManager["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> Secrets Manager"]
-        CloudWatchLogs["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> CloudWatch Logs"]
-        ECR["<img src='https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/brands/aws.svg' width='20' height='20' /> ECR (Docker Images)"]
-    end
-
-    %% Connections %%
-    User -- "HTTPS (yourapp.com)" --> CloudFront
-
-    CloudFront -- "Static Assets (Default Behavior)<br/>OAC" --> S3_Bucket
-    CloudFront -- "API Requests (/api/*)" --> ALB
-
-    ALB -- "HTTP/HTTPS" --> ECS_Service
-
-    AppContainer -- "SQL over TCP/IP" --> RDS_PostgreSQL
-    AppContainer -- "Reads Secrets" --> SecretsManager
-    AppContainer -- "Writes Logs" --> CloudWatchLogs
-
-    ECS_Service -- "Pulls Image" --> ECR
-    ECS_Service -- "Uses IAM Roles" --> IAM
-    RDS_PostgreSQL -- "Uses IAM (for auth, optional)" --> IAM
-    SecretsManager -- "Managed by IAM" --> IAM
-
-
-    %% External Services (Example)
-    subgraph ExternalServices
-        WizAPI["Wiz API (Optional)"]
-    end
-    AppContainer -- "HTTPS (Outbound via NAT)" --> WizAPI
-
-
-    %% Style Definitions (Optional, for better rendering if supported)
-    classDef cdn fill:#FF9900,stroke:#333,stroke-width:2px;
-    classDef alb fill:#FF9900,stroke:#333,stroke-width:2px;
-    classDef s3 fill:#5A30B5,stroke:#333,stroke-width:2px;
-    classDef ecs fill:#232F3E,stroke:#FF9900,stroke-width:2px,color:#fff;
-    classDef rds fill:#5A30B5,stroke:#333,stroke-width:2px;
-    classDef network fill:#D1E7DD,stroke:#333,stroke-width:1px;
-    classDef security fill:#F8F9FA,stroke:#333,stroke-width:1px;
-
-    class CloudFront cdn;
-    class ALB alb;
-    class S3_Bucket s3;
-    class ECS_Service ecs;
-    class AppContainer ecs;
-    class RDS_PostgreSQL rds;
-    class NAT_Gateway,IGW,PublicSubnets,PrivateSubnets network;
-    class IAM,SecretsManager,CloudWatchLogs,ECR security;
+    class Frontend frontend
+    class Auth auth
+    class Gateway gateway
+    class WebServices webservice
+    class AIScanner,DataIntegrity,WizIntegration,ComplianceEngine microservice
+    class PostgreSQL database
+    class WizAPI,MLModels external
 ```
+
+## Key Architecture Benefits
+
+### 🎯 **Separation of Concerns**
+- **Node.js**: Handles web services, authentication, and data management
+- **Python**: Specializes in AI/ML tasks, data processing, and external integrations
+
+### 🚀 **Scalability**
+- Independent scaling of microservices based on demand
+- Language-specific optimization for different workloads
+
+### 🔧 **Maintainability**
+- Clear service boundaries and responsibilities
+- Independent deployment and updates
+- Technology stack optimization per service
+
+### 🛡️ **Security**
+- Centralized authentication and authorization
+- Service-to-service communication through API gateway
+- Role-based access control across all services
+
+### 🔄 **Enterprise Integration**
+- RESTful APIs for easy integration
+- Standardized data formats and protocols
+- Comprehensive logging and monitoring capabilities
