@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform.
-  This template provisions a VPC, PostgreSQL RDS database, ECS Fargate service for the backend,
-  S3 bucket and CloudFront distribution for the frontend.
+  CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
+  with hybrid microservices architecture. This template provisions a VPC, PostgreSQL RDS database,
+  ECS Fargate services for Node.js API Gateway and Python microservices, S3 bucket and 
+  CloudFront distribution for the frontend.
 
 Parameters:
   DBPassword:
@@ -22,21 +23,33 @@ Parameters:
     Default: ""
     NoEcho: true
 
-  DockerImageTag:
+  NodeJSImageTag:
     Type: String
-    Description: Docker image tag for the application (e.g., 'latest' or a specific version from ECR).
+    Description: Docker image tag for the Node.js API Gateway (e.g., 'latest' or a specific version from ECR).
     Default: "latest"
 
-  AppServerInstanceType:
+  PythonImageTag:
     Type: String
-    Description: EC2 instance type for the backend (if using EC2, e.g., 't3.micro'). This is for future flexibility, current template uses Fargate.
-    Default: "t3.micro" # Placeholder, as Fargate doesn't use traditional instance types directly for tasks
+    Description: Docker image tag for Python microservices (e.g., 'latest' or a specific version from ECR).
+    Default: "latest"
 
-  DesiredCount:
+  APIGatewayDesiredCount:
     Type: Number
-    Description: Desired number of tasks for the backend ECS service.
+    Description: Desired number of tasks for the Node.js API Gateway service.
+    Default: 2
+    MinValue: 1
+
+  MicroservicesDesiredCount:
+    Type: Number
+    Description: Desired number of tasks for each Python microservice.
     Default: 1
     MinValue: 1
+
+  EnableMicroservices:
+    Type: String
+    Description: Whether to deploy Python microservices (true/false). Set to false for API Gateway only deployment.
+    Default: "true"
+    AllowedValues: ["true", "false"]
 
   SSLCertificateArn:
     Type: String
