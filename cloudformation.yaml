@@ -60,6 +60,7 @@ Conditions:
   CreateWizClientIdSecret: !Not [!Equals [!Ref WizClientId, ""]]
   CreateWizClientSecretSecret: !Not [!Equals [!Ref WizClientSecret, ""]]
   HasSSLCertificate: !Not [!Equals [!Ref SSLCertificateArn, ""]]
+  DeployMicroservices: !Equals [!Ref EnableMicroservices, "true"]
 
 Resources:
   VPC:
@@ -334,13 +335,30 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub ${AWS::StackName}-AppServerSecurityGroup
-      GroupDescription: "Security group for the Application Server (ECS Tasks/ALB)"
+      GroupDescription: "Security group for the API Gateway (ECS Tasks/ALB)"
       VpcId: !Ref VPC
       # Ingress rules will be added for ALB (HTTP/HTTPS)
       # Egress to RDS will be implicitly allowed by RDS SG Ingress from this SG.
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-AppServerSG
+
+  MicroservicesSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: DeployMicroservices
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-MicroservicesSecurityGroup
+      GroupDescription: "Security group for Python Microservices"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8001
+          ToPort: 8004
+          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+          Description: "Allow traffic from API Gateway to microservices"
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-MicroservicesSG
 
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -393,36 +411,64 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-RDSInstance
 
-  # ECR Repository
-  ECRRepository:
+  # ECR Repository for Node.js API Gateway
+  ECRRepositoryNodeJS:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub ${AWS::StackName}/app-repository # You can customize the repository name
-      # It's good practice to set an image scanning configuration
+      RepositoryName: !Sub ${AWS::StackName}/nodejs-api-gateway
       ImageScanningConfiguration:
         ScanOnPush: true
-      # Lifecycle policy can be added to manage old images, e.g., remove untagged images older than X days
-      # LifecyclePolicy:
-      #   LifecyclePolicyText: |
-      #     {
-      #       "rules": [
-      #         {
-      #           "rulePriority": 1,
-      #           "description": "Keep only last 5 images",
-      #           "selection": {
-      #             "tagStatus": "any",
-      #             "countType": "imageCountMoreThan",
-      #             "countNumber": 5
-      #           },
-      #           "action": {
-      #             "type": "expire"
-      #           }
-      #         }
-      #       ]
-      #     }
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep only last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-ECRRepository
+          Value: !Sub ${AWS::StackName}-ECRRepository-NodeJS
+
+  # ECR Repository for Python Microservices
+  ECRRepositoryPython:
+    Type: AWS::ECR::Repository
+    Condition: DeployMicroservices
+    Properties:
+      RepositoryName: !Sub ${AWS::StackName}/python-microservices
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep only last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ECRRepository-Python
 
   # ECS Cluster
   ECSCluster:
@@ -433,23 +479,23 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ECSCluster
 
-  # ECS Task Definition
-  ECSTaskDefinition:
+  # ECS Task Definition for Node.js API Gateway
+  APIGatewayTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub ${AWS::StackName}-AppTask
-      Cpu: "256"  # 0.25 vCPU
-      Memory: "512" # 0.5 GB RAM
+      Family: !Sub ${AWS::StackName}-APIGateway
+      Cpu: "512"  # 0.5 vCPU
+      Memory: "1024" # 1 GB RAM
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      ExecutionRoleArn: !Ref ECSTaskExecutionRole # Role for ECS agent to pull image, write logs
-      TaskRoleArn: !Ref AppServerRole             # Role for the application code itself
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      TaskRoleArn: !Ref AppServerRole
       ContainerDefinitions:
-        - Name: !Sub ${AWS::StackName}-AppContainer
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:${DockerImageTag}"
+        - Name: !Sub ${AWS::StackName}-APIGateway
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryNodeJS}:${NodeJSImageTag}"
           PortMappings:
-            - ContainerPort: 5000 # Assuming app listens on port 5000
+            - ContainerPort: 5000
               Protocol: tcp
           Environment:
             - Name: NODE_ENV
@@ -461,46 +507,187 @@ Resources:
             - Name: PGPORT
               Value: !GetAtt RDSPostgresInstance.Endpoint.Port
             - Name: PGUSER
-              Value: ai_spm_user # Matches MasterUsername in RDS
+              Value: ai_spm_user
             - Name: PGDATABASE
-              Value: ai_spm_db   # Matches DBName in RDS
+              Value: ai_spm_db
             - Name: WIZ_CLIENT_ID
               Value: !If [CreateWizClientIdSecret, !Ref WizClientId, ""]
             - Name: WIZ_CLIENT_SECRET
               Value: !If [CreateWizClientSecretSecret, !Ref WizClientSecret, ""]
-          Secrets: # Secrets to inject as environment variables
-            - Name: PGPASSWORD # App needs to read this env var
+            - Name: AI_SCANNER_URL
+              Value: !If [DeployMicroservices, !Sub "http://${AIServiceDiscovery}.${AWS::StackName}-microservices.local:8001", ""]
+            - Name: DATA_INTEGRITY_URL
+              Value: !If [DeployMicroservices, !Sub "http://${DataIntegrityServiceDiscovery}.${AWS::StackName}-microservices.local:8002", ""]
+            - Name: WIZ_INTEGRATION_URL
+              Value: !If [DeployMicroservices, !Sub "http://${WizIntegrationServiceDiscovery}.${AWS::StackName}-microservices.local:8003", ""]
+            - Name: COMPLIANCE_ENGINE_URL
+              Value: !If [DeployMicroservices, !Sub "http://${ComplianceEngineServiceDiscovery}.${AWS::StackName}-microservices.local:8004", ""]
+          Secrets:
+            - Name: PGPASSWORD
               ValueFrom: !Ref DBPasswordSecret
-            - Name: SESSION_SECRET # App needs to read this env var
+            - Name: SESSION_SECRET
               ValueFrom: !Ref SessionSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref AppLogGroup
+              awslogs-group: !Ref APIGatewayLogGroup
               awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
+              awslogs-stream-prefix: api-gateway
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-ECSTaskDefinition
+          Value: !Sub ${AWS::StackName}-APIGatewayTaskDefinition
 
-  # Log Group for ECS Application
-  AppLogGroup:
+  # ECS Task Definition for Python Microservices
+  MicroservicesTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Condition: DeployMicroservices
+    Properties:
+      Family: !Sub ${AWS::StackName}-Microservices
+      Cpu: "1024"  # 1 vCPU
+      Memory: "2048" # 2 GB RAM
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      TaskRoleArn: !Ref AppServerRole
+      ContainerDefinitions:
+        - Name: ai-scanner
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryPython}:ai-scanner-${PythonImageTag}"
+          PortMappings:
+            - ContainerPort: 8001
+              Protocol: tcp
+          Environment:
+            - Name: ENVIRONMENT
+              Value: production
+            - Name: PGHOST
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+            - Name: PGPORT
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+            - Name: PGUSER
+              Value: ai_spm_user
+            - Name: PGDATABASE
+              Value: ai_spm_db
+          Secrets:
+            - Name: PGPASSWORD
+              ValueFrom: !Ref DBPasswordSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref MicroservicesLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ai-scanner
+        - Name: data-integrity
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryPython}:data-integrity-${PythonImageTag}"
+          PortMappings:
+            - ContainerPort: 8002
+              Protocol: tcp
+          Environment:
+            - Name: ENVIRONMENT
+              Value: production
+            - Name: PGHOST
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+            - Name: PGPORT
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+            - Name: PGUSER
+              Value: ai_spm_user
+            - Name: PGDATABASE
+              Value: ai_spm_db
+          Secrets:
+            - Name: PGPASSWORD
+              ValueFrom: !Ref DBPasswordSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref MicroservicesLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: data-integrity
+        - Name: wiz-integration
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryPython}:wiz-integration-${PythonImageTag}"
+          PortMappings:
+            - ContainerPort: 8003
+              Protocol: tcp
+          Environment:
+            - Name: ENVIRONMENT
+              Value: production
+            - Name: PGHOST
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+            - Name: PGPORT
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+            - Name: PGUSER
+              Value: ai_spm_user
+            - Name: PGDATABASE
+              Value: ai_spm_db
+            - Name: WIZ_CLIENT_ID
+              Value: !If [CreateWizClientIdSecret, !Ref WizClientId, ""]
+            - Name: WIZ_CLIENT_SECRET
+              Value: !If [CreateWizClientSecretSecret, !Ref WizClientSecret, ""]
+          Secrets:
+            - Name: PGPASSWORD
+              ValueFrom: !Ref DBPasswordSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref MicroservicesLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: wiz-integration
+        - Name: compliance-engine
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryPython}:compliance-engine-${PythonImageTag}"
+          PortMappings:
+            - ContainerPort: 8004
+              Protocol: tcp
+          Environment:
+            - Name: ENVIRONMENT
+              Value: production
+            - Name: PGHOST
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+            - Name: PGPORT
+              Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+            - Name: PGUSER
+              Value: ai_spm_user
+            - Name: PGDATABASE
+              Value: ai_spm_db
+          Secrets:
+            - Name: PGPASSWORD
+              ValueFrom: !Ref DBPasswordSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref MicroservicesLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: compliance-engine
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-MicroservicesTaskDefinition
+
+  # Log Group for API Gateway
+  APIGatewayLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /ecs/${AWS::StackName}/app
-      RetentionInDays: 7 # Adjust as needed
+      LogGroupName: !Sub /ecs/${AWS::StackName}/api-gateway
+      RetentionInDays: 14
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-AppLogGroup
+          Value: !Sub ${AWS::StackName}-APIGatewayLogGroup
 
-  # ECS Service
-  ECSService:
+  # Log Group for Python Microservices
+  MicroservicesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: DeployMicroservices
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}/microservices
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-MicroservicesLogGroup
+
+  # ECS Service for API Gateway
+  APIGatewayService:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: !Sub ${AWS::StackName}-AppService
+      ServiceName: !Sub ${AWS::StackName}-APIGateway
       Cluster: !Ref ECSCluster
-      TaskDefinition: !Ref ECSTaskDefinition
-      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref APIGatewayTaskDefinition
+      DesiredCount: !Ref APIGatewayDesiredCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -508,24 +695,133 @@ Resources:
             - !Ref PrivateSubnet1
             - !Ref PrivateSubnet2
           SecurityGroups:
-            - !Ref AppServerSecurityGroup # Security group for the tasks themselves
-          AssignPublicIp: DISABLED # Tasks are in private subnets
-      LoadBalancers: # Will be configured to point to an ALB Target Group
-        - TargetGroupArn: !Ref ALBTargetGroup # ALBTargetGroup will be created in ALB section
-          ContainerName: !Sub ${AWS::StackName}-AppContainer
+            - !Ref AppServerSecurityGroup
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - TargetGroupArn: !Ref ALBTargetGroup
+          ContainerName: !Sub ${AWS::StackName}-APIGateway
           ContainerPort: 5000
-      HealthCheckGracePeriodSeconds: 60 # Give containers time to start before health checks fail deployment
+      HealthCheckGracePeriodSeconds: 60
       DeploymentConfiguration:
         MinimumHealthyPercent: 50
         MaximumPercent: 200
+      ServiceRegistries:
+        - RegistryArn: !GetAtt APIGatewayServiceDiscovery.Arn
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-ECSService
+          Value: !Sub ${AWS::StackName}-APIGatewayService
     DependsOn:
-      # Ensure ALB Listener Rule (if separate) or ALB is created before service tries to attach
-      # For now, we'll add DependsOn to ALBListenerRule or ALB itself later.
-      # Let's assume ALBTargetGroup is enough for now.
-      - ALBTargetGroup # This will be created in step 10
+      - ALBTargetGroup
+
+  # ECS Service for Python Microservices
+  MicroservicesService:
+    Type: AWS::ECS::Service
+    Condition: DeployMicroservices
+    Properties:
+      ServiceName: !Sub ${AWS::StackName}-Microservices
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref MicroservicesTaskDefinition
+      DesiredCount: !Ref MicroservicesDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref MicroservicesSecurityGroup
+          AssignPublicIp: DISABLED
+      HealthCheckGracePeriodSeconds: 120
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 50
+        MaximumPercent: 200
+      ServiceRegistries:
+        - RegistryArn: !GetAtt AIServiceDiscovery.Arn
+        - RegistryArn: !GetAtt DataIntegrityServiceDiscovery.Arn
+        - RegistryArn: !GetAtt WizIntegrationServiceDiscovery.Arn
+        - RegistryArn: !GetAtt ComplianceEngineServiceDiscovery.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-MicroservicesService
+
+  # Service Discovery Namespace for Microservices
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Condition: DeployMicroservices
+    Properties:
+      Name: !Sub ${AWS::StackName}-microservices.local
+      Vpc: !Ref VPC
+      Description: Service discovery namespace for AI-SPM microservices
+
+  # Service Discovery Services
+  APIGatewayServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      Name: api-gateway
+      NamespaceId: !If [DeployMicroservices, !Ref ServiceDiscoveryNamespace, !Ref "AWS::NoValue"]
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+        NamespaceId: !If [DeployMicroservices, !Ref ServiceDiscoveryNamespace, !Ref "AWS::NoValue"]
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+
+  AIServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Condition: DeployMicroservices
+    Properties:
+      Name: ai-scanner
+      NamespaceId: !Ref ServiceDiscoveryNamespace
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+
+  DataIntegrityServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Condition: DeployMicroservices
+    Properties:
+      Name: data-integrity
+      NamespaceId: !Ref ServiceDiscoveryNamespace
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+
+  WizIntegrationServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Condition: DeployMicroservices
+    Properties:
+      Name: wiz-integration
+      NamespaceId: !Ref ServiceDiscoveryNamespace
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+
+  ComplianceEngineServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
+    Condition: DeployMicroservices
+    Properties:
+      Name: compliance-engine
+      NamespaceId: !Ref ServiceDiscoveryNamespace
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
 
   # S3 Bucket for Frontend Static Assets
   S3FrontendBucket:
@@ -767,3 +1063,107 @@ Resources:
       FromPort: 5000 # ECS Task port
       ToPort: 5000
       SourceSecurityGroupId: !Ref ALBSecurityGroup # Allow from ALB's SG
+
+Outputs:
+  # CloudFront Distribution URL
+  CloudFrontURL:
+    Description: "CloudFront Distribution URL for the AI-SPM Platform"
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontURL
+
+  # Application Load Balancer URL
+  ALBEndpoint:
+    Description: "Application Load Balancer endpoint for API access"
+    Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+    Export:
+      Name: !Sub ${AWS::StackName}-ALBEndpoint
+
+  # ECR Repository URIs
+  ECRRepositoryNodeJSURI:
+    Description: "ECR Repository URI for Node.js API Gateway images"
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryNodeJS}"
+    Export:
+      Name: !Sub ${AWS::StackName}-ECRRepositoryNodeJS
+
+  ECRRepositoryPythonURI:
+    Condition: DeployMicroservices
+    Description: "ECR Repository URI for Python Microservices images"
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryPython}"
+    Export:
+      Name: !Sub ${AWS::StackName}-ECRRepositoryPython
+
+  # S3 Bucket for Frontend Assets
+  S3FrontendBucketName:
+    Description: "S3 Bucket name for frontend static assets"
+    Value: !Ref S3FrontendBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-S3FrontendBucket
+
+  # Database Information
+  DatabaseEndpoint:
+    Description: "RDS PostgreSQL Database endpoint"
+    Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseEndpoint
+
+  DatabasePort:
+    Description: "RDS PostgreSQL Database port"
+    Value: !GetAtt RDSPostgresInstance.Endpoint.Port
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabasePort
+
+  # ECS Cluster Information
+  ECSClusterName:
+    Description: "ECS Cluster name for the AI-SPM Platform"
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub ${AWS::StackName}-ECSCluster
+
+  # API Gateway Service Information
+  APIGatewayServiceName:
+    Description: "ECS Service name for the Node.js API Gateway"
+    Value: !Ref APIGatewayService
+    Export:
+      Name: !Sub ${AWS::StackName}-APIGatewayService
+
+  # Microservices Service Information
+  MicroservicesServiceName:
+    Condition: DeployMicroservices
+    Description: "ECS Service name for Python Microservices"
+    Value: !Ref MicroservicesService
+    Export:
+      Name: !Sub ${AWS::StackName}-MicroservicesService
+
+  # Service Discovery Information
+  ServiceDiscoveryNamespace:
+    Condition: DeployMicroservices
+    Description: "Service Discovery namespace for microservices communication"
+    Value: !Ref ServiceDiscoveryNamespace
+    Export:
+      Name: !Sub ${AWS::StackName}-ServiceDiscoveryNamespace
+
+  # Architecture Information
+  ArchitectureType:
+    Description: "Architecture type deployed"
+    Value: !If [DeployMicroservices, "Hybrid Microservices (Node.js + Python)", "API Gateway Only (Node.js)"]
+    Export:
+      Name: !Sub ${AWS::StackName}-ArchitectureType
+
+  # Deployment Instructions
+  DeploymentNotes:
+    Description: "Important deployment information"
+    Value: !Sub |
+      Deployment completed successfully!
+      
+      Architecture: ${!If [DeployMicroservices, "Hybrid Microservices", "API Gateway Only"]}
+      
+      Next Steps:
+      1. Build and push Node.js API Gateway image to: ${ECRRepositoryNodeJS}
+      ${!If [DeployMicroservices, "2. Build and push Python microservices images to: ${ECRRepositoryPython}", ""]}
+      3. Upload frontend assets to S3 bucket: ${S3FrontendBucket}
+      4. Access application via CloudFront: https://${CloudFrontDistribution.DomainName}
+      
+      ${!If [DeployMicroservices, "Microservices will be discoverable via internal DNS in the VPC.", ""]}
+    Export:
+      Name: !Sub ${AWS::StackName}-DeploymentNotes
