@@ -1,0 +1,234 @@
+# =============================================================================
+# AI-SPM Service Mesh - Virtual Services Configuration
+# =============================================================================
+# These virtual services define traffic routing rules within the service mesh,
+# enabling advanced traffic management, load balancing, and fault injection.
+# =============================================================================
+
+# API Gateway Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway-vs
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    traffic: routing
+spec:
+  hosts:
+  - api-gateway
+  - api-gateway.ai-spm.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/api/health"
+    route:
+    - destination:
+        host: api-gateway
+        port:
+          number: 5000
+    timeout: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: "/api/"
+    route:
+    - destination:
+        host: api-gateway
+        port:
+          number: 5000
+    timeout: 30s
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: api-gateway
+        port:
+          number: 5000
+    timeout: 30s
+---
+# AI Scanner Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ai-scanner-vs
+  namespace: ai-spm
+  labels:
+    app: ai-scanner
+    traffic: routing
+spec:
+  hosts:
+  - ai-scanner
+  - ai-scanner.ai-spm.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: ai-scanner
+        port:
+          number: 8001
+    timeout: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: "/scan/"
+    route:
+    - destination:
+        host: ai-scanner
+        port:
+          number: 8001
+    timeout: 120s  # AI scanning may take longer
+    retries:
+      attempts: 1
+      perTryTimeout: 60s
+  - route:
+    - destination:
+        host: ai-scanner
+        port:
+          number: 8001
+    timeout: 30s
+---
+# Data Integrity Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: data-integrity-vs
+  namespace: ai-spm
+  labels:
+    app: data-integrity
+    traffic: routing
+spec:
+  hosts:
+  - data-integrity
+  - data-integrity.ai-spm.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: data-integrity
+        port:
+          number: 8002
+    timeout: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: "/check/"
+    route:
+    - destination:
+        host: data-integrity
+        port:
+          number: 8002
+    timeout: 60s  # Data integrity checks may take time
+    retries:
+      attempts: 2
+      perTryTimeout: 30s
+  - route:
+    - destination:
+        host: data-integrity
+        port:
+          number: 8002
+    timeout: 30s
+---
+# Wiz Integration Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: wiz-integration-vs
+  namespace: ai-spm
+  labels:
+    app: wiz-integration
+    traffic: routing
+spec:
+  hosts:
+  - wiz-integration
+  - wiz-integration.ai-spm.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: wiz-integration
+        port:
+          number: 8003
+    timeout: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: "/integrate"
+    route:
+    - destination:
+        host: wiz-integration
+        port:
+          number: 8003
+    timeout: 60s  # External API calls may take time
+    retries:
+      attempts: 2
+      perTryTimeout: 30s
+  - route:
+    - destination:
+        host: wiz-integration
+        port:
+          number: 8003
+    timeout: 30s
+---
+# Compliance Engine Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: compliance-engine-vs
+  namespace: ai-spm
+  labels:
+    app: compliance-engine
+    traffic: routing
+spec:
+  hosts:
+  - compliance-engine
+  - compliance-engine.ai-spm.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: compliance-engine
+        port:
+          number: 8004
+    timeout: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        regex: "^/(assess|evaluate|frameworks).*"
+    route:
+    - destination:
+        host: compliance-engine
+        port:
+          number: 8004
+    timeout: 90s  # Compliance assessments may take longer
+    retries:
+      attempts: 1
+      perTryTimeout: 45s
+  - route:
+    - destination:
+        host: compliance-engine
+        port:
+          number: 8004
+    timeout: 30s

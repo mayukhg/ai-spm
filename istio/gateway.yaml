@@ -1,0 +1,211 @@
+# =============================================================================
+# AI-SPM Service Mesh - Istio Gateway Configuration
+# =============================================================================
+# This gateway configuration handles external traffic ingress to the AI-SPM
+# platform, providing TLS termination and routing to the API Gateway service.
+# =============================================================================
+
+# External Gateway for AI-SPM Platform
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ai-spm-gateway
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    gateway: external
+spec:
+  selector:
+    istio: ingressgateway  # Use default Istio ingress gateway
+  servers:
+  # HTTPS Server Configuration
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE  # Terminate TLS at gateway
+      credentialName: ai-spm-tls-cert  # Secret containing TLS certificate
+    hosts:
+    - ai-spm.example.com
+    - "*.ai-spm.example.com"
+  # HTTP Server (redirect to HTTPS)
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - ai-spm.example.com
+    - "*.ai-spm.example.com"
+    tls:
+      httpsRedirect: true  # Automatically redirect HTTP to HTTPS
+---
+# Virtual Service for External Gateway
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ai-spm-external-vs
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    gateway: external
+spec:
+  hosts:
+  - ai-spm.example.com
+  - "*.ai-spm.example.com"
+  gateways:
+  - ai-spm-gateway
+  http:
+  # Health check endpoint (no authentication required)
+  - match:
+    - uri:
+        exact: "/api/health"
+    route:
+    - destination:
+        host: api-gateway.ai-spm.svc.cluster.local
+        port:
+          number: 5000
+    timeout: 10s
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-gateway-type: external
+  # API endpoints (authentication required)
+  - match:
+    - uri:
+        prefix: "/api/"
+    route:
+    - destination:
+        host: api-gateway.ai-spm.svc.cluster.local
+        port:
+          number: 5000
+    timeout: 60s
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-gateway-type: external
+    # Add security headers
+    headers:
+      response:
+        add:
+          x-frame-options: DENY
+          x-content-type-options: nosniff
+          x-xss-protection: "1; mode=block"
+          strict-transport-security: "max-age=31536000; includeSubDomains"
+  # Frontend application (serve React app)
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: api-gateway.ai-spm.svc.cluster.local
+        port:
+          number: 5000
+    timeout: 30s
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-gateway-type: external
+    # Security headers for frontend
+    headers:
+      response:
+        add:
+          x-frame-options: SAMEORIGIN
+          x-content-type-options: nosniff
+          cache-control: "public, max-age=3600"
+---
+# Internal Gateway for Service-to-Service Communication
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ai-spm-internal-gateway
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    gateway: internal
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # Internal HTTPS for secure service communication
+  - port:
+      number: 8443
+      name: internal-https
+      protocol: HTTPS
+    tls:
+      mode: ISTIO_MUTUAL  # Use Istio-managed mTLS certificates
+    hosts:
+    - "*.ai-spm.svc.cluster.local"
+    - "*.ai-spm"
+---
+# Service Monitor Gateway for Observability
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ai-spm-monitoring-gateway
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    gateway: monitoring
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # Metrics and monitoring endpoints
+  - port:
+      number: 9090
+      name: metrics
+      protocol: HTTP
+    hosts:
+    - monitoring.ai-spm.example.com
+  # Distributed tracing endpoints
+  - port:
+      number: 16686
+      name: tracing
+      protocol: HTTP
+    hosts:
+    - tracing.ai-spm.example.com
+---
+# Virtual Service for Monitoring
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ai-spm-monitoring-vs
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    gateway: monitoring
+spec:
+  hosts:
+  - monitoring.ai-spm.example.com
+  - tracing.ai-spm.example.com
+  gateways:
+  - ai-spm-monitoring-gateway
+  http:
+  # Prometheus metrics
+  - match:
+    - uri:
+        prefix: "/metrics"
+    - headers:
+        host:
+          exact: monitoring.ai-spm.example.com
+    route:
+    - destination:
+        host: prometheus.istio-system.svc.cluster.local
+        port:
+          number: 9090
+  # Jaeger tracing
+  - match:
+    - uri:
+        prefix: "/"
+    - headers:
+        host:
+          exact: tracing.ai-spm.example.com
+    route:
+    - destination:
+        host: jaeger-query.istio-system.svc.cluster.local
+        port:
+          number: 16686

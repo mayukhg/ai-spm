@@ -1,0 +1,234 @@
+# =============================================================================
+# AI-SPM Service Mesh - Telemetry Configuration
+# =============================================================================
+# Telemetry configuration for observability, metrics, and distributed tracing
+# in the service mesh environment.
+# =============================================================================
+
+# Telemetry configuration for metrics collection
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: ai-spm-metrics
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    telemetry: metrics
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        environment:
+          value: "production"
+        service_mesh:
+          value: "istio"
+        platform:
+          value: "ai-spm"
+    - match:
+        metric: REQUEST_COUNT
+      disabled: false
+    - match:
+        metric: REQUEST_DURATION
+      disabled: false
+    - match:
+        metric: TCP_OPENED_CONNECTIONS
+      disabled: false
+---
+# Telemetry configuration for distributed tracing
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: ai-spm-tracing
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    telemetry: tracing
+spec:
+  tracing:
+  - providers:
+    - name: jaeger
+  - customTags:
+      service_name:
+        header:
+          name: x-service-name
+      request_id:
+        header:
+          name: x-request-id
+      user_id:
+        header:
+          name: x-user-id
+      operation_type:
+        header:
+          name: x-operation-type
+      security_context:
+        header:
+          name: x-security-context
+  - randomSamplingPercentage: 1.0  # 100% sampling for AI-SPM (adjust for production)
+---
+# Telemetry configuration for access logging
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: ai-spm-access-logs
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    telemetry: logging
+spec:
+  accessLogging:
+  - providers:
+    - name: otel
+  - format: |
+      {
+        "timestamp": "%START_TIME%",
+        "method": "%REQ(:METHOD)%",
+        "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+        "protocol": "%PROTOCOL%",
+        "response_code": "%RESPONSE_CODE%",
+        "response_flags": "%RESPONSE_FLAGS%",
+        "bytes_received": "%BYTES_RECEIVED%",
+        "bytes_sent": "%BYTES_SENT%",
+        "duration": "%DURATION%",
+        "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+        "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+        "user_agent": "%REQ(USER-AGENT)%",
+        "request_id": "%REQ(X-REQUEST-ID)%",
+        "authority": "%REQ(:AUTHORITY)%",
+        "upstream_host": "%UPSTREAM_HOST%",
+        "upstream_cluster": "%UPSTREAM_CLUSTER%",
+        "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+        "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+        "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+        "requested_server_name": "%REQUESTED_SERVER_NAME%",
+        "route_name": "%ROUTE_NAME%",
+        "trace_id": "%REQ(X-TRACE-ID)%",
+        "span_id": "%REQ(X-SPAN-ID)%",
+        "service_mesh": "istio",
+        "platform": "ai-spm",
+        "security": {
+          "mtls_enabled": "%CONNECTION_MTLS%",
+          "peer_certificate_fingerprint": "%DOWNSTREAM_TLS_FINGERPRINT%"
+        }
+      }
+---
+# Service-specific telemetry for API Gateway
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: api-gateway-telemetry
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    telemetry: service-specific
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        service_type:
+          value: "api-gateway"
+        tier:
+          value: "frontend"
+    - match:
+        metric: REQUEST_DURATION
+      tagOverrides:
+        service_type:
+          value: "api-gateway"
+        tier:
+          value: "frontend"
+---
+# Service-specific telemetry for Python microservices
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: microservices-telemetry
+  namespace: ai-spm
+  labels:
+    app: python-microservices
+    telemetry: service-specific
+spec:
+  selector:
+    matchLabels:
+      tier: microservice
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        service_type:
+          value: "microservice"
+        tier:
+          value: "backend"
+        language:
+          value: "python"
+    - match:
+        metric: REQUEST_DURATION
+      tagOverrides:
+        service_type:
+          value: "microservice"
+        tier:
+          value: "backend"
+        language:
+          value: "python"
+  tracing:
+  - customTags:
+      microservice_type:
+        header:
+          name: x-microservice-type
+      ai_operation:
+        header:
+          name: x-ai-operation
+      model_version:
+        header:
+          name: x-model-version
+      compliance_framework:
+        header:
+          name: x-compliance-framework
+---
+# Database telemetry configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: database-telemetry
+  namespace: ai-spm
+  labels:
+    app: database
+    telemetry: database
+spec:
+  selector:
+    matchLabels:
+      app: database
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: TCP_OPENED_CONNECTIONS
+      tagOverrides:
+        service_type:
+          value: "database"
+        tier:
+          value: "data"
+        database_type:
+          value: "postgresql"
+    - match:
+        metric: TCP_CLOSED_CONNECTIONS
+      tagOverrides:
+        service_type:
+          value: "database"
+        tier:
+          value: "data"
+        database_type:
+          value: "postgresql"

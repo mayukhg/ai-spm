@@ -1,0 +1,266 @@
+# =============================================================================
+# AI-SPM Service Mesh - Destination Rules Configuration
+# =============================================================================
+# These destination rules define traffic policies, load balancing, and
+# connection pooling for services within the service mesh.
+# =============================================================================
+
+# API Gateway Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: api-gateway-dr
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    traffic: policy
+spec:
+  host: api-gateway
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Enforce mTLS
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  portLevelSettings:
+  - port:
+      number: 5000
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 25
+        maxRequestsPerConnection: 5
+---
+# AI Scanner Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: ai-scanner-dr
+  namespace: ai-spm
+  labels:
+    app: ai-scanner
+    traffic: policy
+spec:
+  host: ai-scanner
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 20
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 20
+        maxRequestsPerConnection: 5
+        maxRetries: 2
+        consecutiveGatewayErrors: 3
+        interval: 30s
+        baseEjectionTime: 30s
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveGatewayErrors: 2
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  portLevelSettings:
+  - port:
+      number: 8001
+    connectionPool:
+      tcp:
+        maxConnections: 10
+      http:
+        http1MaxPendingRequests: 5
+        maxRequestsPerConnection: 2
+        idleTimeout: 300s  # AI operations may take longer
+        h2UpgradePolicy: UPGRADE
+---
+# Data Integrity Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: data-integrity-dr
+  namespace: ai-spm
+  labels:
+    app: data-integrity
+    traffic: policy
+spec:
+  host: data-integrity
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 15
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 8
+        http2MaxRequests: 15
+        maxRequestsPerConnection: 3
+        maxRetries: 2
+        consecutiveGatewayErrors: 3
+        interval: 30s
+        baseEjectionTime: 30s
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 2
+      interval: 30s
+      baseEjectionTime: 45s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+---
+# Wiz Integration Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: wiz-integration-dr
+  namespace: ai-spm
+  labels:
+    app: wiz-integration
+    traffic: policy
+spec:
+  host: wiz-integration
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 10
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 5
+        http2MaxRequests: 10
+        maxRequestsPerConnection: 2
+        maxRetries: 1  # External API calls should not retry as aggressively
+        consecutiveGatewayErrors: 2
+        interval: 60s
+        baseEjectionTime: 60s
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveGatewayErrors: 2
+      interval: 60s
+      baseEjectionTime: 120s
+      maxEjectionPercent: 30
+      minHealthPercent: 70
+---
+# Compliance Engine Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: compliance-engine-dr
+  namespace: ai-spm
+  labels:
+    app: compliance-engine
+    traffic: policy
+spec:
+  host: compliance-engine
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 12
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 6
+        http2MaxRequests: 12
+        maxRequestsPerConnection: 3
+        maxRetries: 1
+        consecutiveGatewayErrors: 2
+        interval: 45s
+        baseEjectionTime: 45s
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 2
+      interval: 45s
+      baseEjectionTime: 90s
+      maxEjectionPercent: 40
+      minHealthPercent: 60
+  portLevelSettings:
+  - port:
+      number: 8004
+    connectionPool:
+      tcp:
+        maxConnections: 6
+      http:
+        http1MaxPendingRequests: 3
+        maxRequestsPerConnection: 2
+        idleTimeout: 600s  # Compliance operations may take longer
+---
+# Database Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: database-dr
+  namespace: ai-spm
+  labels:
+    app: database
+    traffic: policy
+spec:
+  host: database
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 10s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 20
+      minHealthPercent: 80
+  portLevelSettings:
+  - port:
+      number: 5432
+    connectionPool:
+      tcp:
+        maxConnections: 25
+        connectTimeout: 5s
+        keepAlive:
+          time: 3600s
+          interval: 60s

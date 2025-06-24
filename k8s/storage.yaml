@@ -1,0 +1,151 @@
+# =============================================================================
+# AI-SPM Service Mesh - Persistent Storage
+# =============================================================================
+# Storage resources for persistent data in the service mesh environment.
+# =============================================================================
+
+# Storage Class for high-performance SSD storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ai-spm-ssd
+  labels:
+    app: ai-spm
+    storage: ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    description: "High-performance SSD storage for AI-SPM services"
+provisioner: kubernetes.io/aws-ebs  # Change based on cloud provider
+parameters:
+  type: gp3
+  fsType: ext4
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+---
+# PostgreSQL Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: ai-spm
+  labels:
+    app: database
+    storage: postgres
+  annotations:
+    description: "Persistent storage for PostgreSQL database"
+    backup-policy: "daily"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 100Gi
+  volumeMode: Filesystem
+---
+# AI Scanner Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-scanner-pvc
+  namespace: ai-spm
+  labels:
+    app: ai-scanner
+    storage: models
+  annotations:
+    description: "Storage for AI model artifacts and scan results"
+    backup-policy: "weekly"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 50Gi
+  volumeMode: Filesystem
+---
+# Data Integrity Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-integrity-pvc
+  namespace: ai-spm
+  labels:
+    app: data-integrity
+    storage: analysis
+  annotations:
+    description: "Storage for data quality analysis artifacts"
+    backup-policy: "weekly"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 30Gi
+  volumeMode: Filesystem
+---
+# Wiz Integration Cache Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wiz-integration-pvc
+  namespace: ai-spm
+  labels:
+    app: wiz-integration
+    storage: cache
+  annotations:
+    description: "Storage for Wiz integration cache and temporary data"
+    backup-policy: "none"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 20Gi
+  volumeMode: Filesystem
+---
+# Compliance Engine Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: compliance-engine-pvc
+  namespace: ai-spm
+  labels:
+    app: compliance-engine
+    storage: reports
+  annotations:
+    description: "Storage for compliance reports and assessment data"
+    backup-policy: "daily"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 40Gi
+  volumeMode: Filesystem
+---
+# Shared Storage for Service Mesh Logs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mesh-logs-pvc
+  namespace: ai-spm
+  labels:
+    app: istio
+    storage: logs
+  annotations:
+    description: "Shared storage for service mesh logs and traces"
+    backup-policy: "weekly"
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write
+  storageClassName: ai-spm-ssd
+  resources:
+    requests:
+      storage: 100Gi
+  volumeMode: Filesystem

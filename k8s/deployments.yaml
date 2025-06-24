@@ -1,0 +1,592 @@
+# =============================================================================
+# AI-SPM Service Mesh - Kubernetes Deployments
+# =============================================================================
+# These deployments define the containerized services with Istio sidecar
+# injection enabled for automatic service mesh integration.
+# =============================================================================
+
+# Service Accounts for each service
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-gateway
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    account: service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-scanner
+  namespace: ai-spm
+  labels:
+    app: ai-scanner
+    account: service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: data-integrity
+  namespace: ai-spm
+  labels:
+    app: data-integrity
+    account: service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wiz-integration
+  namespace: ai-spm
+  labels:
+    app: wiz-integration
+    account: service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: compliance-engine
+  namespace: ai-spm
+  labels:
+    app: compliance-engine
+    account: service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: database
+  namespace: ai-spm
+  labels:
+    app: database
+    account: service
+---
+# API Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    version: v1
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        version: v1
+        tier: frontend
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"  # Enable Istio sidecar injection
+        sidecar.istio.io/proxyCPU: "100m"
+        sidecar.istio.io/proxyMemory: "128Mi"
+    spec:
+      serviceAccountName: api-gateway
+      containers:
+      - name: api-gateway
+        image: ai-spm-gateway:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-url
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: session-secret
+        # Service mesh internal URLs
+        - name: AI_SCANNER_URL
+          value: "http://ai-scanner.ai-spm.svc.cluster.local:8001"
+        - name: DATA_INTEGRITY_URL
+          value: "http://data-integrity.ai-spm.svc.cluster.local:8002"
+        - name: WIZ_INTEGRATION_URL
+          value: "http://wiz-integration.ai-spm.svc.cluster.local:8003"
+        - name: COMPLIANCE_ENGINE_URL
+          value: "http://compliance-engine.ai-spm.svc.cluster.local:8004"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+# AI Scanner Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-scanner
+  namespace: ai-spm
+  labels:
+    app: ai-scanner
+    version: v1
+    tier: microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-scanner
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: ai-scanner
+        version: v1
+        tier: microservice
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/proxyCPU: "50m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+    spec:
+      serviceAccountName: ai-scanner
+      containers:
+      - name: ai-scanner
+        image: ai-spm-ai-scanner:latest
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PGHOST
+          value: "database.ai-spm.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "ai_spm_user"
+        - name: PGDATABASE
+          value: "ai_spm_db"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-password
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+# Data Integrity Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-integrity
+  namespace: ai-spm
+  labels:
+    app: data-integrity
+    version: v1
+    tier: microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-integrity
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: data-integrity
+        version: v1
+        tier: microservice
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/proxyCPU: "50m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+    spec:
+      serviceAccountName: data-integrity
+      containers:
+      - name: data-integrity
+        image: ai-spm-data-integrity:latest
+        ports:
+        - containerPort: 8002
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PGHOST
+          value: "database.ai-spm.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "ai_spm_user"
+        - name: PGDATABASE
+          value: "ai_spm_db"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-password
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 45
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+# Wiz Integration Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiz-integration
+  namespace: ai-spm
+  labels:
+    app: wiz-integration
+    version: v1
+    tier: microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wiz-integration
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: wiz-integration
+        version: v1
+        tier: microservice
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/proxyCPU: "50m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+    spec:
+      serviceAccountName: wiz-integration
+      containers:
+      - name: wiz-integration
+        image: ai-spm-wiz-integration:latest
+        ports:
+        - containerPort: 8003
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PGHOST
+          value: "database.ai-spm.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "ai_spm_user"
+        - name: PGDATABASE
+          value: "ai_spm_db"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-password
+        - name: WIZ_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: wiz-client-id
+              optional: true
+        - name: WIZ_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: wiz-client-secret
+              optional: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+# Compliance Engine Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: compliance-engine
+  namespace: ai-spm
+  labels:
+    app: compliance-engine
+    version: v1
+    tier: microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: compliance-engine
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: compliance-engine
+        version: v1
+        tier: microservice
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/proxyCPU: "50m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+    spec:
+      serviceAccountName: compliance-engine
+      containers:
+      - name: compliance-engine
+        image: ai-spm-compliance-engine:latest
+        ports:
+        - containerPort: 8004
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PGHOST
+          value: "database.ai-spm.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "ai_spm_user"
+        - name: PGDATABASE
+          value: "ai_spm_db"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-password
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 45
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+# Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: ai-spm
+  labels:
+    app: database
+    version: v1
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: database
+        version: v1
+        tier: data
+        health-check: enabled
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/proxyCPU: "100m"
+        sidecar.istio.io/proxyMemory: "128Mi"
+    spec:
+      serviceAccountName: database
+      containers:
+      - name: database
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "ai_spm_db"
+        - name: POSTGRES_USER
+          value: "ai_spm_user"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-spm-secrets
+              key: database-password
+        - name: POSTGRES_INITDB_ARGS
+          value: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - ai_spm_user
+            - -d
+            - ai_spm_db
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - ai_spm_user
+            - -d
+            - ai_spm_db
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: false  # PostgreSQL requires root for initialization
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: init-scripts
+        configMap:
+          name: postgres-init-scripts

@@ -1,0 +1,274 @@
+# =============================================================================
+# AI-SPM Service Mesh - Configuration Maps
+# =============================================================================
+# These ConfigMaps provide configuration data for the services in the mesh.
+# =============================================================================
+
+# PostgreSQL Initialization Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: ai-spm
+  labels:
+    app: database
+    config: init-scripts
+data:
+  init-db.sql: |
+    -- AI-SPM Database Initialization for Service Mesh
+    SET timezone = 'UTC';
+    
+    -- Enable required PostgreSQL extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Performance optimizations for containerized environment
+    ALTER SYSTEM SET work_mem = '256MB';
+    ALTER SYSTEM SET shared_buffers = '512MB';
+    ALTER SYSTEM SET effective_cache_size = '2GB';
+    ALTER SYSTEM SET max_connections = 200;
+    ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+    
+    -- Grant necessary permissions
+    GRANT CONNECT ON DATABASE ai_spm_db TO ai_spm_user;
+    GRANT USAGE ON SCHEMA public TO ai_spm_user;
+    GRANT CREATE ON SCHEMA public TO ai_spm_user;
+    
+    -- Log completion
+    DO $$
+    BEGIN
+        RAISE NOTICE 'AI-SPM Database initialization completed for service mesh deployment';
+    END $$;
+---
+# API Gateway Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    config: application
+data:
+  service-mesh.json: |
+    {
+      "serviceMesh": {
+        "enabled": true,
+        "mtls": {
+          "enabled": true,
+          "mode": "strict"
+        },
+        "services": {
+          "aiScanner": {
+            "url": "http://ai-scanner.ai-spm.svc.cluster.local:8001",
+            "timeout": 120,
+            "retries": 2
+          },
+          "dataIntegrity": {
+            "url": "http://data-integrity.ai-spm.svc.cluster.local:8002",
+            "timeout": 60,
+            "retries": 3
+          },
+          "wizIntegration": {
+            "url": "http://wiz-integration.ai-spm.svc.cluster.local:8003",
+            "timeout": 60,
+            "retries": 2
+          },
+          "complianceEngine": {
+            "url": "http://compliance-engine.ai-spm.svc.cluster.local:8004",
+            "timeout": 90,
+            "retries": 1
+          }
+        },
+        "circuit-breaker": {
+          "enabled": true,
+          "failure-threshold": 5,
+          "recovery-timeout": 30
+        }
+      }
+    }
+  nginx.conf: |
+    # Nginx configuration for service mesh environment
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        # Trust Istio proxy headers
+        set_real_ip_from 10.0.0.0/8;
+        set_real_ip_from 172.16.0.0/12;
+        set_real_ip_from 192.168.0.0/16;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        
+        # Service mesh security headers
+        add_header X-Service-Mesh "Istio" always;
+        add_header X-mTLS-Enabled "true" always;
+        
+        # Upstream definitions for load balancing
+        upstream api_gateway {
+            server 127.0.0.1:5000;
+            keepalive 32;
+        }
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            # Health check endpoint
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # Proxy to Node.js application
+            location / {
+                proxy_pass http://api_gateway;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Service-Mesh "Istio";
+                
+                # Service mesh specific headers
+                proxy_set_header X-Request-ID $request_id;
+                proxy_set_header X-Trace-ID $http_x_trace_id;
+                
+                # Connection settings
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 60s;
+                proxy_read_timeout 60s;
+                
+                # Buffer settings
+                proxy_buffering on;
+                proxy_buffer_size 4k;
+                proxy_buffers 8 4k;
+            }
+        }
+    }
+---
+# Istio Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-config
+  namespace: ai-spm
+  labels:
+    app: istio
+    config: mesh
+data:
+  mesh-config.yaml: |
+    # Istio mesh configuration for AI-SPM
+    defaultConfig:
+      # Enable automatic mTLS
+      proxyStatsMatcher:
+        inclusionRegexps:
+        - ".*_cx_.*"
+        - ".*_rq_.*"
+        - ".*_rbac_.*"
+      # Distributed tracing
+      tracing:
+        sampling: 1.0
+        max_path_tag_length: 256
+        custom_tags:
+          environment:
+            literal:
+              value: "production"
+          service_mesh:
+            literal:
+              value: "istio"
+      # Connection pool settings
+      connectionPool:
+        tcp:
+          maxConnections: 10
+        http:
+          http1MaxPendingRequests: 5
+          maxRequestsPerConnection: 2
+    # Trust domain for mTLS certificates
+    trustDomain: "cluster.local"
+    # Certificate provider
+    defaultProviders:
+      metrics:
+      - prometheus
+      tracing:
+      - jaeger
+      accessLogging:
+      - otel
+---
+# Monitoring Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  namespace: ai-spm
+  labels:
+    app: monitoring
+    config: observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+    
+    scrape_configs:
+      # Istio mesh metrics
+      - job_name: 'istio-mesh'
+        kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+            - ai-spm
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: istio-proxy;http-monitoring
+      
+      # Application metrics
+      - job_name: 'ai-spm-services'
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - ai-spm
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+  
+  jaeger-config.yaml: |
+    # Jaeger configuration for distributed tracing
+    apiVersion: jaegertracing.io/v1
+    kind: Jaeger
+    metadata:
+      name: ai-spm-jaeger
+      namespace: ai-spm
+    spec:
+      strategy: production
+      collector:
+        maxReplicas: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+      storage:
+        type: elasticsearch
+        elasticsearch:
+          nodeCount: 1
+          resources:
+            limits:
+              cpu: 1
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi

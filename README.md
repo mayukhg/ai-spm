@@ -37,15 +37,23 @@ A comprehensive enterprise-grade security platform built with a **hybrid microse
 - **Integration Ready**: APIs for third-party security tools and enterprise systems
 - **Scalable Architecture**: Designed for enterprise-scale deployments
 
-## Hybrid Microservices Architecture
+## Hybrid Microservices Architecture with Service Mesh
 
 ### Architecture Overview
-The platform implements a modern hybrid microservices architecture that optimizes for both performance and specialization:
+The platform implements a modern hybrid microservices architecture with **Istio service mesh** that optimizes for both performance, security, and observability:
 
 - **Node.js API Gateway**: Handles web services, authentication, and data management
 - **Python Microservices**: Specialized services for AI/ML security tasks
 - **React Frontend**: Modern, responsive user interface
 - **PostgreSQL Database**: Centralized data storage with ORM integration
+- **Istio Service Mesh**: Provides mTLS, traffic management, and observability
+
+### Service Mesh Security Features
+- **Automatic mTLS**: All inter-service communication is encrypted and authenticated
+- **Zero Trust Security**: Services communicate only through verified certificates
+- **Authorization Policies**: Fine-grained access control between services
+- **Traffic Encryption**: End-to-end encryption for all service communications
+- **Certificate Management**: Automatic certificate rotation and management
 
 ### Technology Stack
 
@@ -77,6 +85,14 @@ The platform implements a modern hybrid microservices architecture that optimize
 - **PostgreSQL 13+** - Enterprise-grade relational database
 - **Connection pooling** - Optimized database connections
 - **Database migrations** - Version-controlled schema management
+
+#### Service Mesh Layer (Istio)
+- **Istio 1.20+** - Production-ready service mesh
+- **Envoy Proxy** - High-performance L7 proxy for all services
+- **Automatic mTLS** - Zero-configuration mutual TLS encryption
+- **Traffic Management** - Advanced routing, load balancing, and fault injection
+- **Observability** - Distributed tracing, metrics, and access logs
+- **Security Policies** - Authorization and authentication policies
 
 ### Microservices Architecture
 
@@ -301,10 +317,21 @@ GET  /health               # Service health check
 ## Installation & Setup
 
 ### Prerequisites
+
+#### For Local/Docker Development
 - **Node.js 18+** - For API Gateway and frontend
 - **Python 3.9+** - For microservices
 - **PostgreSQL 13+** - Database server
 - **npm or yarn** - Package manager
+- **Docker 20.10+** - Container runtime
+- **Docker Compose 2.0+** - Container orchestration
+
+#### For Service Mesh Deployment
+- **Kubernetes 1.24+** - Container orchestration platform
+- **Istio 1.20+** - Service mesh platform
+- **kubectl** - Kubernetes command-line tool
+- **istioctl** - Istio command-line tool
+- **Helm 3.0+** - Package manager for Kubernetes (optional)
 
 ### Environment Configuration
 Create a `.env` file in the project root:
@@ -414,35 +441,54 @@ The main application will be available at `http://localhost:5000`
 
 ### Production Deployment
 
-#### Option 1: Full Stack Deployment
-1. **Build Application**
+#### Option 1: Service Mesh Deployment (Recommended)
+Deploy with Istio service mesh for enterprise security and observability:
+
 ```bash
-npm run build
+# Install prerequisites
+curl -L https://istio.io/downloadIstio | sh -
+export PATH=$PWD/istio-1.20.0/bin:$PATH
+
+# Deploy with service mesh
+chmod +x deploy/service-mesh-deployment.sh
+./deploy/service-mesh-deployment.sh deploy
 ```
 
-2. **Start Production Server**
+**Service Mesh Features:**
+- **Automatic mTLS** between all services
+- **Authorization policies** for fine-grained access control  
+- **Distributed tracing** with Jaeger
+- **Metrics collection** with Prometheus
+- **Traffic management** with intelligent routing
+
+#### Option 2: Docker Compose Deployment
+Deploy with Docker Compose for development/testing:
+
 ```bash
-npm start
+# Build and deploy all services
+docker-compose up --build -d
+
+# Or deploy only specific services
+docker-compose up --build database api-gateway ai-scanner
 ```
 
-3. **Deploy Python Microservices**
-```bash
-# Deploy each microservice to your container platform
-# Example using Docker:
-docker build -t ai-scanner microservices/ai-scanner/
-docker build -t data-integrity microservices/data-integrity/
-docker build -t wiz-integration microservices/wiz-integration/
-docker build -t compliance-engine microservices/compliance-engine/
+#### Option 3: AWS ECS Deployment
+Deploy using CloudFormation template:
 
-# Run containers with appropriate port mappings
-docker run -d -p 8001:8001 ai-scanner
-docker run -d -p 8002:8002 data-integrity  
-docker run -d -p 8003:8003 wiz-integration
-docker run -d -p 8004:8004 compliance-engine
+```bash
+# Build and push container images
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin
+
+# Deploy infrastructure
+aws cloudformation deploy \
+  --template-file cloudformation.yaml \
+  --stack-name ai-spm-production \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --parameter-overrides EnableMicroservices=true
 ```
 
-#### Option 2: API Gateway Only (Microservices Optional)
-The platform can run with just the Node.js API Gateway if microservices are not needed:
+#### Option 4: API Gateway Only
+Deploy just the Node.js API Gateway without microservices:
 ```bash
 npm run build
 npm start
@@ -454,26 +500,39 @@ npm start
 - **Node.js**: Optimized for high-throughput web services and real-time data
 - **Python**: Leverages rich AI/ML ecosystem for specialized security tasks
 - **React**: Modern, responsive user interface with excellent developer experience
+- **Istio Service Mesh**: Production-grade traffic management and security
 
 ### 🚀 **Scalability & Performance** 
 - **Independent Scaling**: Scale web services and AI services based on different demand patterns
 - **Resource Optimization**: Allocate resources efficiently based on service requirements
 - **Load Distribution**: Distribute processing across multiple specialized services
+- **Intelligent Routing**: Istio provides advanced load balancing and traffic splitting
 
 ### 🔧 **Development & Maintenance**
 - **Team Specialization**: Web developers work on Node.js, AI/ML experts on Python services
 - **Independent Deployment**: Deploy and update services independently
 - **Clear Boundaries**: Well-defined service responsibilities and interfaces
+- **Zero-Downtime Deployments**: Istio enables canary deployments and traffic shifting
 
 ### 🛡️ **Enterprise Security**
 - **Service Isolation**: Security issues in one service don't affect others
 - **Centralized Authentication**: Single point of authentication through API Gateway
 - **Audit Trail**: Comprehensive logging across all services
+- **Automatic mTLS**: All inter-service communication is encrypted and authenticated
+- **Zero Trust Architecture**: Services must prove identity for every request
+- **Policy Enforcement**: Fine-grained authorization policies between services
 
 ### 🔄 **Integration Flexibility**
 - **API-First Design**: RESTful APIs for easy integration with existing systems  
 - **Protocol Standardization**: Consistent HTTP/JSON communication
 - **Service Discovery**: Automatic service registration and discovery
+- **Circuit Breaking**: Automatic failure isolation and recovery
+
+### 📊 **Observability & Monitoring**
+- **Distributed Tracing**: End-to-end request tracing across all services
+- **Metrics Collection**: Comprehensive performance and business metrics
+- **Access Logging**: Detailed logs of all service communications
+- **Real-time Dashboards**: Grafana, Kiali, and Jaeger integration
 
 ### AWS Deployment using CloudFormation
 

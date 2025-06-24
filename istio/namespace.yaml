@@ -1,0 +1,19 @@
+# =============================================================================
+# AI-SPM Service Mesh - Kubernetes Namespace Configuration
+# =============================================================================
+# This creates the dedicated namespace for the AI-SPM platform with Istio
+# service mesh enabled for automatic sidecar injection.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-spm
+  labels:
+    name: ai-spm
+    environment: production
+    istio-injection: enabled  # Enables automatic Istio sidecar injection
+    version: v1
+  annotations:
+    description: "AI Security Posture Management Platform with Service Mesh"
+    owner: "security-team"

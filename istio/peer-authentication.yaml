@@ -1,0 +1,55 @@
+# =============================================================================
+# AI-SPM Service Mesh - mTLS Peer Authentication Configuration
+# =============================================================================
+# This enforces strict mTLS for all services in the ai-spm namespace,
+# ensuring encrypted and authenticated communication between all components.
+# =============================================================================
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: ai-spm-mtls-strict
+  namespace: ai-spm
+  labels:
+    app: ai-spm
+    security: mtls-strict
+spec:
+  # Enforce strict mTLS for all services in the namespace
+  mtls:
+    mode: STRICT
+---
+# Additional PeerAuthentication for the API Gateway
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: api-gateway-mtls
+  namespace: ai-spm
+  labels:
+    app: api-gateway
+    security: mtls-strict
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  mtls:
+    mode: STRICT
+  # Allow plaintext for external ingress traffic on port 5000
+  portLevelMtls:
+    5000:
+      mode: PERMISSIVE  # Allows both mTLS and plaintext for external access
+---
+# PeerAuthentication for Python Microservices
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: python-microservices-mtls
+  namespace: ai-spm
+  labels:
+    app: python-microservices
+    security: mtls-strict
+spec:
+  selector:
+    matchLabels:
+      tier: microservice
+  mtls:
+    mode: STRICT  # All microservice-to-microservice communication must use mTLS
