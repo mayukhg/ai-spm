@@ -579,6 +579,165 @@ docker-compose exec database psql -U ai_spm_user -d ai_spm_db -c "SELECT * FROM 
 docker-compose exec database psql -U ai_spm_user -d ai_spm_db -c "EXPLAIN ANALYZE SELECT * FROM ai_assets;"
 ```
 
+## Enhanced Security Features
+
+### Authentication and Authorization
+The enhanced deployment includes multiple authentication methods:
+
+```bash
+# Test OAuth 2.0 authentication flow
+curl -X GET "http://localhost:5000/api/auth/oauth/login"
+
+# Test SAML authentication flow
+curl -X GET "http://localhost:5000/api/auth/saml/login"
+
+# Test WebAuthn registration (requires frontend interaction)
+curl -X POST "http://localhost:5000/api/auth/webauthn/register/begin" \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "test-user"}'
+
+# Generate API key for service-to-service authentication
+curl -X POST "http://localhost:5000/api/auth/api-keys" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"scopes": ["read", "write"], "expiresIn": "1y"}'
+```
+
+### Security Monitoring and SIEM Integration
+Monitor security events and alerts in real-time:
+
+```bash
+# View recent security events
+curl -X GET "http://localhost:5000/api/security/events?limit=50" \
+  -H "Authorization: Bearer <jwt-token>"
+
+# View active security alerts
+curl -X GET "http://localhost:5000/api/security/alerts?status=active" \
+  -H "Authorization: Bearer <jwt-token>"
+
+# Add threat intelligence indicators
+curl -X POST "http://localhost:5000/api/security/threat-intelligence" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "indicators": [
+      {
+        "iocType": "ip",
+        "iocValue": "192.168.1.100",
+        "threatType": "malware",
+        "confidence": 0.9,
+        "source": "internal-analysis",
+        "tags": ["apt", "campaign-x"]
+      }
+    ]
+  }'
+
+# Check SIEM integration status
+curl -X GET "http://localhost:5000/api/security/siem/status" \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+### AI/ML Security and Model Management
+Manage AI model security lifecycle:
+
+```bash
+# Create a new model version with security scanning
+curl -X POST "http://localhost:5000/api/security/models/ml-model-1/versions" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": "v1.2.0",
+    "status": "testing",
+    "metrics": {
+      "accuracy": 0.95,
+      "precision": 0.92,
+      "recall": 0.89
+    },
+    "metadata": {
+      "framework": "tensorflow",
+      "architecture": "cnn",
+      "datasetHash": "abc123...",
+      "dependencies": ["tensorflow==2.8.0", "numpy==1.21.0"]
+    }
+  }'
+
+# Run bias detection on a model version
+curl -X POST "http://localhost:5000/api/security/models/ml-model-1/versions/v1.2.0/bias-detection" \
+  -H "Authorization: Bearer <jwt-token>"
+
+# Add data lineage for model traceability
+curl -X POST "http://localhost:5000/api/security/models/ml-model-1/lineage" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "datasetId": "dataset-001",
+    "datasetName": "customer-data-v1",
+    "datasetVersion": "1.0",
+    "source": "production-database",
+    "transformations": [
+      {
+        "type": "preprocessing",
+        "description": "Data cleaning and normalization",
+        "parameters": {"method": "standardization"}
+      }
+    ]
+  }'
+```
+
+### Privacy Governance and GDPR Compliance
+Manage data privacy and compliance:
+
+```bash
+# Create a privacy policy
+curl -X POST "http://localhost:5000/api/security/privacy/policies" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "GDPR Data Retention Policy",
+    "version": "1.0",
+    "framework": "GDPR",
+    "effectiveDate": "2024-01-01T00:00:00Z",
+    "status": "active",
+    "rules": [
+      {
+        "name": "Personal Data Retention",
+        "type": "retention",
+        "conditions": [
+          {"field": "dataType", "operator": "equals", "value": "personal"}
+        ],
+        "actions": [
+          {"type": "delete", "parameters": {"after": "2555"}}
+        ]
+      }
+    ]
+  }'
+
+# Submit a privacy request (GDPR data subject request)
+curl -X POST "http://localhost:5000/api/security/privacy/requests" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subjectId": "user-123",
+    "type": "access",
+    "requestDetails": {
+      "reason": "GDPR Article 15 - Right of access"
+    }
+  }'
+
+# Detect PII in data
+curl -X POST "http://localhost:5000/api/security/privacy/detect-pii" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "555-123-4567",
+      "description": "Customer profile data"
+    }
+  }'
+```
+
 ## Production Deployment
 
 ### Service Mesh Deployment (Recommended)

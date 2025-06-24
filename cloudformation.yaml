@@ -1,10 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
-  with hybrid microservices architecture and service mesh ready infrastructure. This template 
-  provisions a VPC, PostgreSQL RDS database, ECS Fargate services for Node.js API Gateway and 
-  Python microservices, S3 bucket and CloudFront distribution for the frontend. The infrastructure 
-  is designed to support Istio service mesh deployment with mTLS and observability features.
+  Enhanced CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
+  with advanced security features including OAuth 2.0/SAML authentication, real-time security monitoring
+  with SIEM integration, AI/ML security controls, and automated privacy governance. This template 
+  provisions a comprehensive security infrastructure with VPC, encrypted RDS database, ECS Fargate 
+  services for enhanced Node.js API Gateway and specialized Python microservices, S3 bucket with 
+  security controls, CloudFront distribution, and integrated security services like CloudTrail, 
+  GuardDuty, and Security Hub. The infrastructure supports Istio service mesh deployment with 
+  zero-trust architecture, automatic mTLS, and comprehensive observability.
 
 Parameters:
   DBPassword:
