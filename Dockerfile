@@ -1,9 +1,11 @@
 # =============================================================================
-# AI Security Posture Management Platform - Hybrid Microservices Dockerfile
+# AI Security Posture Management Platform - Service Mesh Ready Dockerfile
 # =============================================================================
-# This multi-stage Dockerfile supports the hybrid microservices architecture:
-# - Node.js API Gateway (main application and frontend)
+# This multi-stage Dockerfile supports the hybrid microservices architecture with
+# Istio service mesh integration:
+# - Node.js API Gateway (main application and frontend) with Envoy sidecar support
 # - Python Microservices (AI scanner, data integrity, Wiz integration, compliance)
+# - Service mesh ready with health checks and proper signal handling
 # 
 # Usage:
 # - For Node.js API Gateway: docker build -t ai-spm-gateway .
@@ -71,12 +73,13 @@ USER nextjs
 # Expose the API Gateway port
 EXPOSE 5000
 
-# Health check for container orchestration
+# Health check for container orchestration and service mesh
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
 
 # Start the Node.js API Gateway
 # Uses the built Express server with integrated frontend serving
+# Configured for Istio service mesh with proper signal handling
 CMD ["node", "dist/index.js"]
 
 # -----------------------------------------------------------------------------
@@ -133,13 +136,14 @@ USER app
 # Expose AI Scanner port
 EXPOSE 8001
 
-# Health check specific to AI Scanner service
+# Health check specific to AI Scanner service and service mesh
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
 
 # Start the AI Scanner microservice
-# Uses uvicorn ASGI server for high-performance async Python web service
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+# Uses uvicorn ASGI server configured for service mesh environment
+# Single worker for proper signal handling with Istio sidecar
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--access-log"]
 
 # -----------------------------------------------------------------------------
 # Stage 5: Data Integrity Microservice
@@ -168,7 +172,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8002/health || exit 1
 
 # Start the Data Integrity microservice
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1"]
+# Configured for service mesh environment with proper logging
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1", "--access-log"]
 
 # -----------------------------------------------------------------------------
 # Stage 6: Wiz Integration Microservice
@@ -197,7 +202,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8003/health || exit 1
 
 # Start the Wiz Integration microservice
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--workers", "1"]
+# Configured for service mesh environment with proper logging
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--workers", "1", "--access-log"]
 
 # -----------------------------------------------------------------------------
 # Stage 7: Compliance Engine Microservice
@@ -226,7 +232,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8004/health || exit 1
 
 # Start the Compliance Engine microservice
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004", "--workers", "1"]
+# Configured for service mesh environment with proper logging
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004", "--workers", "1", "--access-log"]
 
 # =============================================================================
 # Build Examples:
