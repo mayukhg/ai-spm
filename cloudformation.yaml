@@ -10,27 +10,146 @@ Description: >
   zero-trust architecture, automatic mTLS, and comprehensive observability.
 
 Parameters:
+  # Environment Configuration
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+
+  # Database Configuration
   DBPassword:
     Type: String
-    Description: Password for the RDS PostgreSQL database. Must be at least 8 characters.
-    MinLength: 8
+    Description: Password for the RDS PostgreSQL database. Must be at least 12 characters with mixed case, numbers, and symbols.
+    MinLength: 12
+    NoEcho: true
+    AllowedPattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$'
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.medium
+    AllowedValues: [db.t3.medium, db.t3.large, db.r5.large, db.r5.xlarge]
+    Description: RDS instance class with enhanced performance for security processing
+
+  # Security Configuration
+  JWTSecret:
+    Type: String
+    Description: JWT secret for token signing (minimum 32 characters)
+    MinLength: 32
     NoEcho: true
 
+  SessionSecret:
+    Type: String
+    Description: Session secret for authentication (minimum 32 characters)
+    MinLength: 32
+    NoEcho: true
+
+  APIKeySecret:
+    Type: String
+    Description: API key secret for service authentication (minimum 32 characters)
+    MinLength: 32
+    NoEcho: true
+
+  # Authentication Provider Configuration
+  OAuthClientId:
+    Type: String
+    Description: (Optional) OAuth 2.0 Client ID for enterprise SSO integration
+    Default: ""
+
+  OAuthClientSecret:
+    Type: String
+    Description: (Optional) OAuth 2.0 Client Secret
+    Default: ""
+    NoEcho: true
+
+  SAMLEntityId:
+    Type: String
+    Description: (Optional) SAML Entity ID for identity federation
+    Default: ""
+
+  SAMLCertificate:
+    Type: String
+    Description: (Optional) SAML IdP Certificate for verification
+    Default: ""
+    NoEcho: true
+
+  # SIEM Integration Configuration
+  SplunkEndpoint:
+    Type: String
+    Description: (Optional) Splunk HEC endpoint URL for SIEM integration
+    Default: ""
+
+  SplunkToken:
+    Type: String
+    Description: (Optional) Splunk HEC authentication token
+    Default: ""
+    NoEcho: true
+
+  # External Security Integrations
   WizClientId:
     Type: String
-    Description: (Optional) Wiz Client ID for Wiz integration.
+    Description: (Optional) Wiz Security Platform Client ID
     Default: ""
 
   WizClientSecret:
     Type: String
-    Description: (Optional) Wiz Client Secret for Wiz integration.
+    Description: (Optional) Wiz Security Platform Client Secret
     Default: ""
     NoEcho: true
 
+  # Container Configuration
   NodeJSImageTag:
     Type: String
-    Description: Docker image tag for the Node.js API Gateway (e.g., 'latest' or a specific version from ECR).
+    Description: Docker image tag for the enhanced Node.js API Gateway
     Default: "latest"
+
+  PythonImageTag:
+    Type: String
+    Description: Docker image tag for Python microservices
+    Default: "latest"
+
+  # Networking Configuration
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for VPC
+
+  # SSL Configuration
+  SSLCertificateArn:
+    Type: String
+    Description: ARN of SSL certificate for HTTPS (required for production)
+
+  # Security Services Configuration
+  EnableCloudTrail:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable AWS CloudTrail for comprehensive audit logging
+
+  EnableGuardDuty:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable Amazon GuardDuty for threat detection
+
+  EnableSecurityHub:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable AWS Security Hub for security posture management
+
+  # Monitoring Configuration
+  EnablePrometheus:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable Prometheus metrics collection
+
+  EnableJaeger:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable Jaeger distributed tracing
 
   PythonImageTag:
     Type: String
