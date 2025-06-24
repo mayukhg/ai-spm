@@ -1,12 +1,61 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from 'express-session';
+import passport from 'passport';
+import helmet from 'helmet';
+import cors from 'cors';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { authRoutes } from './routes/auth-routes.js';
+import { securityRoutes } from './routes/security-routes.js';
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+    },
+  },
+}));
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5000',
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ai-spm-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Request logging and correlation ID middleware
 app.use((req, res, next) => {
+  const correlationId = req.headers['x-correlation-id'] || 
+                       req.headers['x-request-id'] || 
+                       `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  req.headers['x-correlation-id'] = correlationId;
+  res.setHeader('x-correlation-id', correlationId);
+  
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
