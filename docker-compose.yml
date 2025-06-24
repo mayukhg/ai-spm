@@ -1,0 +1,340 @@
+# =============================================================================
+# AI Security Posture Management Platform - Docker Compose Configuration
+# =============================================================================
+# This Docker Compose file orchestrates the hybrid microservices architecture:
+# - PostgreSQL Database
+# - Node.js API Gateway (frontend + backend)
+# - Python Microservices (AI scanner, data integrity, Wiz integration, compliance)
+# 
+# Usage:
+# - Full stack: docker-compose up --build
+# - API Gateway only: docker-compose up --build database api-gateway
+# - Specific services: docker-compose up --build database api-gateway ai-scanner
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Database Service - PostgreSQL
+  # ---------------------------------------------------------------------------
+  # Centralized database for all services with persistent storage
+  database:
+    image: postgres:15-alpine
+    container_name: ai-spm-database
+    environment:
+      POSTGRES_DB: ai_spm_db
+      POSTGRES_USER: ai_spm_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persistent data storage
+      - postgres_data:/var/lib/postgresql/data
+      # Custom initialization scripts (if needed)
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - ai-spm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_spm_user -d ai_spm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Node.js API Gateway Service
+  # ---------------------------------------------------------------------------
+  # Main application serving React frontend and handling API requests
+  api-gateway:
+    build:
+      context: .
+      target: nodejs-gateway
+      dockerfile: Dockerfile
+    container_name: ai-spm-api-gateway
+    environment:
+      # Application Configuration
+      NODE_ENV: production
+      PORT: 5000
+      
+      # Database Configuration
+      DATABASE_URL: postgresql://ai_spm_user:${DB_PASSWORD:-ai_spm_secure_password}@database:5432/ai_spm_db
+      PGHOST: database
+      PGPORT: 5432
+      PGUSER: ai_spm_user
+      PGPASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      PGDATABASE: ai_spm_db
+      
+      # Session Configuration
+      SESSION_SECRET: ${SESSION_SECRET:-your_super_secure_session_secret_key_here}
+      
+      # Microservices URLs (internal Docker network)
+      AI_SCANNER_URL: http://ai-scanner:8001
+      DATA_INTEGRITY_URL: http://data-integrity:8002
+      WIZ_INTEGRATION_URL: http://wiz-integration:8003
+      COMPLIANCE_ENGINE_URL: http://compliance-engine:8004
+      
+      # External Integration (optional)
+      WIZ_CLIENT_ID: ${WIZ_CLIENT_ID:-}
+      WIZ_CLIENT_SECRET: ${WIZ_CLIENT_SECRET:-}
+      WIZ_AUDIENCE: ${WIZ_AUDIENCE:-beyond-api}
+    ports:
+      - "5000:5000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - ai-spm-network
+    volumes:
+      # Mount logs for debugging (optional)
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # AI Scanner Microservice
+  # ---------------------------------------------------------------------------
+  # Python service for AI/ML model security analysis and bias detection
+  ai-scanner:
+    build:
+      context: .
+      target: ai-scanner
+      dockerfile: Dockerfile
+    container_name: ai-spm-ai-scanner
+    environment:
+      # Service Configuration
+      ENVIRONMENT: production
+      
+      # Database Configuration
+      PGHOST: database
+      PGPORT: 5432
+      PGUSER: ai_spm_user
+      PGPASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      PGDATABASE: ai_spm_db
+      
+      # Service-specific Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_WORKERS: ${AI_SCANNER_WORKERS:-1}
+    ports:
+      - "8001:8001"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - ai-spm-network
+    volumes:
+      # Mount for model artifacts and temporary files
+      - ai_scanner_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Data Integrity Microservice
+  # ---------------------------------------------------------------------------
+  # Python service for data quality monitoring and anomaly detection
+  data-integrity:
+    build:
+      context: .
+      target: data-integrity
+      dockerfile: Dockerfile
+    container_name: ai-spm-data-integrity
+    environment:
+      # Service Configuration
+      ENVIRONMENT: production
+      
+      # Database Configuration
+      PGHOST: database
+      PGPORT: 5432
+      PGUSER: ai_spm_user
+      PGPASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      PGDATABASE: ai_spm_db
+      
+      # Service-specific Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_WORKERS: ${DATA_INTEGRITY_WORKERS:-1}
+    ports:
+      - "8002:8002"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - ai-spm-network
+    volumes:
+      # Mount for data processing artifacts
+      - data_integrity_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Wiz Integration Microservice
+  # ---------------------------------------------------------------------------
+  # Python service for external security platform integration
+  wiz-integration:
+    build:
+      context: .
+      target: wiz-integration
+      dockerfile: Dockerfile
+    container_name: ai-spm-wiz-integration
+    environment:
+      # Service Configuration
+      ENVIRONMENT: production
+      
+      # Database Configuration
+      PGHOST: database
+      PGPORT: 5432
+      PGUSER: ai_spm_user
+      PGPASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      PGDATABASE: ai_spm_db
+      
+      # External Integration Configuration
+      WIZ_CLIENT_ID: ${WIZ_CLIENT_ID:-}
+      WIZ_CLIENT_SECRET: ${WIZ_CLIENT_SECRET:-}
+      WIZ_AUDIENCE: ${WIZ_AUDIENCE:-beyond-api}
+      
+      # Service-specific Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_WORKERS: ${WIZ_INTEGRATION_WORKERS:-1}
+    ports:
+      - "8003:8003"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - ai-spm-network
+    volumes:
+      # Mount for integration artifacts and caching
+      - wiz_integration_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Compliance Engine Microservice
+  # ---------------------------------------------------------------------------
+  # Python service for automated compliance assessment and policy evaluation
+  compliance-engine:
+    build:
+      context: .
+      target: compliance-engine
+      dockerfile: Dockerfile
+    container_name: ai-spm-compliance-engine
+    environment:
+      # Service Configuration
+      ENVIRONMENT: production
+      
+      # Database Configuration
+      PGHOST: database
+      PGPORT: 5432
+      PGUSER: ai_spm_user
+      PGPASSWORD: ${DB_PASSWORD:-ai_spm_secure_password}
+      PGDATABASE: ai_spm_db
+      
+      # Service-specific Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MAX_WORKERS: ${COMPLIANCE_ENGINE_WORKERS:-1}
+    ports:
+      - "8004:8004"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - ai-spm-network
+    volumes:
+      # Mount for compliance artifacts and reports
+      - compliance_engine_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+# =============================================================================
+# Network Configuration
+# =============================================================================
+# Custom bridge network for service-to-service communication
+networks:
+  ai-spm-network:
+    driver: bridge
+    name: ai-spm-network
+
+# =============================================================================
+# Volume Configuration
+# =============================================================================
+# Persistent data storage for database and service-specific data
+volumes:
+  # Database persistent storage
+  postgres_data:
+    driver: local
+    name: ai-spm-postgres-data
+  
+  # Microservice data volumes
+  ai_scanner_data:
+    driver: local
+    name: ai-spm-ai-scanner-data
+  
+  data_integrity_data:
+    driver: local
+    name: ai-spm-data-integrity-data
+  
+  wiz_integration_data:
+    driver: local
+    name: ai-spm-wiz-integration-data
+  
+  compliance_engine_data:
+    driver: local
+    name: ai-spm-compliance-engine-data
+
+# =============================================================================
+# Usage Examples:
+# =============================================================================
+#
+# 1. Start entire platform:
+#    docker-compose up --build
+#
+# 2. Start only API Gateway (without microservices):
+#    docker-compose up --build database api-gateway
+#
+# 3. Start with specific microservices:
+#    docker-compose up --build database api-gateway ai-scanner data-integrity
+#
+# 4. Scale microservices:
+#    docker-compose up --build --scale ai-scanner=2 --scale data-integrity=2
+#
+# 5. Development with live reload (requires volume mounts):
+#    docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# 6. Production deployment:
+#    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# 7. View logs:
+#    docker-compose logs -f api-gateway
+#    docker-compose logs -f ai-scanner
+#
+# 8. Stop and remove everything:
+#    docker-compose down -v
+#
+# Environment Variables:
+# Create a .env file with the following variables:
+# DB_PASSWORD=your_secure_database_password
+# SESSION_SECRET=your_super_secure_session_secret
+# WIZ_CLIENT_ID=your_wiz_client_id (optional)
+# WIZ_CLIENT_SECRET=your_wiz_client_secret (optional)
+# LOG_LEVEL=INFO
+# =============================================================================

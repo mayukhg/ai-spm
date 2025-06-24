@@ -1,0 +1,212 @@
+# =============================================================================
+# Docker Build Optimization - .dockerignore
+# =============================================================================
+# This file excludes unnecessary files and directories from Docker build context
+# to improve build performance and reduce image size for the hybrid microservices
+# architecture.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Development and Build Artifacts
+# -----------------------------------------------------------------------------
+# Node.js dependencies (will be installed during build)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (generated during build)
+dist/
+build/
+.next/
+out/
+
+# -----------------------------------------------------------------------------
+# Version Control and Git
+# -----------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# -----------------------------------------------------------------------------
+# IDE and Editor Files
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# -----------------------------------------------------------------------------
+# Environment and Configuration Files
+# -----------------------------------------------------------------------------
+# Environment files (contain secrets)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# Local configuration
+.eslintcache
+.stylelintcache
+
+# -----------------------------------------------------------------------------
+# Documentation and README Files
+# -----------------------------------------------------------------------------
+# Keep essential docs but exclude development-specific ones
+README.md
+ARCHITECTURE.md
+ARCHITECTURE_DIAGRAM.md
+EXECUTIVE_PITCH.md
+EXECUTIVE_PITCH_VISUAL.html
+*.md
+docs/
+documentation/
+
+# -----------------------------------------------------------------------------
+# Testing and Coverage
+# -----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+test-results/
+.jest/
+jest.config.*
+cypress/
+e2e/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# -----------------------------------------------------------------------------
+# Deployment and Infrastructure
+# -----------------------------------------------------------------------------
+# CloudFormation and deployment files (not needed in containers)
+cloudformation.yaml
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Deployment scripts
+deploy/
+scripts/deploy/
+.github/workflows/
+
+# -----------------------------------------------------------------------------
+# Temporary and Cache Files
+# -----------------------------------------------------------------------------
+tmp/
+temp/
+.tmp/
+.cache/
+.parcel-cache/
+.webpack/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# -----------------------------------------------------------------------------
+# Operating System Files
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# -----------------------------------------------------------------------------
+# Python-specific (for microservices builds)
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# -----------------------------------------------------------------------------
+# Microservices Optimization
+# -----------------------------------------------------------------------------
+# When building Node.js API Gateway, exclude Python microservices
+# (Individual microservice builds will include only their specific directories)
+
+# For Node.js builds, exclude Python microservices source
+# microservices/*/
+# python-ai-spm/
+
+# For Python builds, exclude Node.js source
+# client/
+# server/
+# shared/ (except schema if needed)
+
+# -----------------------------------------------------------------------------
+# Replit and Development Platform Files
+# -----------------------------------------------------------------------------
+.replit
+.config/
+.local/
+.upm/
+replit.nix
+
+# -----------------------------------------------------------------------------
+# Attached Assets and User Uploads
+# -----------------------------------------------------------------------------
+attached_assets/
+uploads/
+user-data/
+
+# -----------------------------------------------------------------------------
+# Legacy and Backup Files
+# -----------------------------------------------------------------------------
+*.bak
+*.backup
+*.old
+backup/
+backups/
+
+# -----------------------------------------------------------------------------
+# Database Files (use external database in production)
+# -----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+data/
+db/
+
+# =============================================================================
+# Notes for Multi-stage Builds:
+# =============================================================================
+# This .dockerignore is optimized for the multi-stage Dockerfile where:
+# 
+# 1. Node.js API Gateway builds exclude Python microservices directories
+# 2. Python microservice builds include only their specific directories
+# 3. Common exclusions apply to all builds for optimization
+#
+# For service-specific builds, the Dockerfile COPY commands are designed to
+# include only necessary files for each service, making this .dockerignore
+# provide general optimization while the Dockerfile provides specific inclusion.
+# =============================================================================
