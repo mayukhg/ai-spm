@@ -7,6 +7,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { authRoutes } from './routes/auth-routes';
 import { securityRoutes } from './routes/security-routes';
+import { agenticRoutes } from './routes/agentic-routes';
 
 const app = express();
 
