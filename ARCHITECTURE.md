@@ -1,10 +1,8 @@
-# AI Security Posture Management Platform - Service Mesh Architecture
+# AI Security Posture Management Platform - Enhanced Architecture
 
-This document provides a comprehensive technical overview of the AI-SPM platform architecture, featuring Istio service mesh for enterprise security, observability, and traffic management.
+## Overview
 
-## Architecture Overview
-
-The AI Security Posture Management platform implements a **hybrid microservices architecture with Istio service mesh** that combines the strengths of Node.js for web services with Python's rich AI/ML ecosystem for specialized security tasks. The service mesh layer provides automatic mTLS encryption, fine-grained authorization policies, and comprehensive observability across all services, creating a zero-trust security architecture optimized for enterprise environments.
+The AI Security Posture Management (AI-SPM) platform implements a modern **hybrid microservices architecture with Istio service mesh** designed for enterprise-grade security, scalability, and observability. This enhanced architecture now includes advanced authentication systems, real-time security monitoring with SIEM integration, comprehensive AI/ML security features, and automated privacy governance capabilities.
 
 ## Design Principles
 

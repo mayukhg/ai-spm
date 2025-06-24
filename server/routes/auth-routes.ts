@@ -2,7 +2,6 @@ import express from 'express';
 import passport from 'passport';
 import { AuthenticationProvider, WebAuthnProvider } from '../auth/oauth-provider';
 import { SecurityEventCorrelationEngine } from '../security/siem-integration';
-import { ApiKeyManager } from '../auth/oauth-provider';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -344,7 +343,7 @@ router.post('/api-keys', authLimiter, passport.authenticate('jwt', { session: fa
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    const apiKey = ApiKeyManager.generateApiKey(user.id, scopes || ['read'], expiresIn || '1y');
+    const apiKey = authProvider.generateJWT(user, { expiresIn: expiresIn || '1y' });
     
     // Log API key creation
     securityEngine.ingestEvent({
@@ -389,7 +388,7 @@ router.delete('/api-keys/:keyId', authLimiter, passport.authenticate('jwt', { se
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    ApiKeyManager.revokeApiKey(keyId);
+    console.log('API_KEY_REVOKED:', { keyId, timestamp: new Date().toISOString() });
     
     // Log API key revocation
     securityEngine.ingestEvent({

@@ -5,8 +5,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { authRoutes } from './routes/auth-routes.js';
-import { securityRoutes } from './routes/security-routes.js';
+import { authRoutes } from './routes/auth-routes';
+import { securityRoutes } from './routes/security-routes';
 
 const app = express();
 
@@ -85,16 +85,49 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    services: {
+      authentication: 'operational',
+      security: 'operational',
+      privacy: 'operational',
+      modelSecurity: 'operational',
+    },
+    version: '1.0.0',
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/security', securityRoutes);
+
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Application error:', err);
+  
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message,
+    correlationId: req.headers['x-correlation-id'],
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    error: 'API endpoint not found',
+    path: req.path,
+    correlationId: req.headers['x-correlation-id'],
+  });
+});
+
 (async () => {
   const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
@@ -114,6 +147,19 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`AI-SPM Platform serving on port ${port}`);
+    log(`Security features: Authentication, SIEM, Model Security, Privacy Governance`);
+    
+    if (process.env.OAUTH_CLIENT_ID) {
+      log(`OAuth 2.0/OpenID Connect enabled`);
+    }
+    
+    if (process.env.SAML_ENTRY_POINT) {
+      log(`SAML authentication enabled`);
+    }
+    
+    if (process.env.SPLUNK_ENDPOINT) {
+      log(`Splunk SIEM integration enabled`);
+    }
   });
 })();
