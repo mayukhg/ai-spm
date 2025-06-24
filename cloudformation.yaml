@@ -1,9 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
-  with hybrid microservices architecture. This template provisions a VPC, PostgreSQL RDS database,
-  ECS Fargate services for Node.js API Gateway and Python microservices, S3 bucket and 
-  CloudFront distribution for the frontend.
+  with hybrid microservices architecture and service mesh ready infrastructure. This template 
+  provisions a VPC, PostgreSQL RDS database, ECS Fargate services for Node.js API Gateway and 
+  Python microservices, S3 bucket and CloudFront distribution for the frontend. The infrastructure 
+  is designed to support Istio service mesh deployment with mTLS and observability features.
 
 Parameters:
   DBPassword:
@@ -51,6 +52,17 @@ Parameters:
     Default: "true"
     AllowedValues: ["true", "false"]
 
+  ServiceMeshReady:
+    Type: String
+    Description: Whether to configure infrastructure for service mesh deployment (true/false).
+    Default: "true"
+    AllowedValues: ["true", "false"]
+
+  KubernetesClusterName:
+    Type: String
+    Description: (Optional) Name of existing EKS cluster for service mesh deployment.
+    Default: ""
+
   SSLCertificateArn:
     Type: String
     Description: (Optional) ARN of the SSL certificate for CloudFront and ALB. If not provided, HTTP will be used (not recommended for production).
@@ -61,6 +73,8 @@ Conditions:
   CreateWizClientSecretSecret: !Not [!Equals [!Ref WizClientSecret, ""]]
   HasSSLCertificate: !Not [!Equals [!Ref SSLCertificateArn, ""]]
   DeployMicroservices: !Equals [!Ref EnableMicroservices, "true"]
+  EnableServiceMesh: !Equals [!Ref ServiceMeshReady, "true"]
+  HasExistingCluster: !Not [!Equals [!Ref KubernetesClusterName, ""]]
 
 Resources:
   VPC:
@@ -1146,24 +1160,41 @@ Outputs:
   # Architecture Information
   ArchitectureType:
     Description: "Architecture type deployed"
-    Value: !If [DeployMicroservices, "Hybrid Microservices (Node.js + Python)", "API Gateway Only (Node.js)"]
+    Value: !Sub 
+      - "${BaseArch} ${ServiceMeshSuffix}"
+      - BaseArch: !If [DeployMicroservices, "Hybrid Microservices (Node.js + Python)", "API Gateway Only (Node.js)"]
+        ServiceMeshSuffix: !If [EnableServiceMesh, "with Service Mesh Ready Infrastructure", ""]
     Export:
       Name: !Sub ${AWS::StackName}-ArchitectureType
 
   # Deployment Instructions
   DeploymentNotes:
     Description: "Important deployment information"
-    Value: !Sub |
-      Deployment completed successfully!
-      
-      Architecture: ${!If [DeployMicroservices, "Hybrid Microservices", "API Gateway Only"]}
-      
-      Next Steps:
-      1. Build and push Node.js API Gateway image to: ${ECRRepositoryNodeJS}
-      ${!If [DeployMicroservices, "2. Build and push Python microservices images to: ${ECRRepositoryPython}", ""]}
-      3. Upload frontend assets to S3 bucket: ${S3FrontendBucket}
-      4. Access application via CloudFront: https://${CloudFrontDistribution.DomainName}
-      
-      ${!If [DeployMicroservices, "Microservices will be discoverable via internal DNS in the VPC.", ""]}
+    Value: !Sub 
+      - |
+        Deployment completed successfully!
+        
+        Architecture: ${ArchType}
+        Service Mesh: ${ServiceMeshStatus}
+        
+        Next Steps:
+        1. Build and push Node.js API Gateway image to: ${ECRRepositoryNodeJS}
+        ${MicroserviceInstructions}
+        2. Upload frontend assets to S3 bucket: ${S3FrontendBucket}
+        3. Access application via CloudFront: https://${CloudFrontDistribution.DomainName}
+        
+        ${ServiceMeshInstructions}
+        
+        For service mesh deployment:
+        1. Deploy to EKS cluster: kubectl apply -f k8s/
+        2. Install Istio: ./deploy/service-mesh-deployment.sh deploy
+        3. Configure mTLS and authorization policies
+        
+        ${DiscoveryNotes}
+      - ArchType: !If [DeployMicroservices, "Hybrid Microservices", "API Gateway Only"]
+        ServiceMeshStatus: !If [EnableServiceMesh, "Ready for Istio deployment", "Standard deployment"]
+        MicroserviceInstructions: !If [DeployMicroservices, !Sub "2. Build and push Python microservices images to: ${ECRRepositoryPython}", ""]
+        ServiceMeshInstructions: !If [EnableServiceMesh, "Infrastructure configured for service mesh with mTLS support.", ""]
+        DiscoveryNotes: !If [DeployMicroservices, "Microservices will be discoverable via internal DNS in the VPC.", ""]
     Export:
       Name: !Sub ${AWS::StackName}-DeploymentNotes

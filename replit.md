@@ -6,13 +6,20 @@ The AI Security Posture Management Platform is an enterprise-grade security solu
 
 ## System Architecture
 
-The platform implements a **hybrid microservices architecture** that combines Node.js for web services with Python for specialized AI/ML tasks:
+The platform implements a **hybrid microservices architecture with Istio service mesh** that combines Node.js for web services with Python for specialized AI/ML tasks:
 
 ### Primary Architecture Components
+- **Istio Service Mesh**: Provides automatic mTLS, traffic management, and observability
 - **Node.js API Gateway**: Handles web requests, authentication, frontend serving, and data management
 - **React Frontend**: Modern responsive UI built with shadcn/ui components and TypeScript
 - **Python Microservices**: Four specialized FastAPI services for AI-specific processing
 - **PostgreSQL Database**: Centralized data storage with Drizzle ORM integration
+
+### Service Mesh Security Features
+- **Automatic mTLS**: All inter-service communication encrypted and authenticated
+- **Zero Trust Security**: Services communicate only through verified certificates
+- **Authorization Policies**: Fine-grained access control between services
+- **Observability**: Distributed tracing, metrics collection, and access logging
 
 ### Microservices Structure
 1. **AI Scanner Service** (Port 8001): Model security analysis and bias detection
@@ -126,7 +133,8 @@ Each microservice is containerized and provides specialized capabilities:
 
 ## Changelog
 
-- June 24, 2025. Initial setup
+- June 24, 2025. Initial hybrid microservices architecture setup
+- June 24, 2025. Implemented Istio service mesh with mTLS and authorization policies
 
 ## User Preferences
 
