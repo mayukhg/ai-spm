@@ -1,0 +1,90 @@
+{
+  "aiThreatCompliancePolicies": {
+    "modelInversionProtection": {
+      "frameworks": ["AI_ACT", "NIST_AI_RMF", "ISO_27001"],
+      "requirements": [
+        {
+          "id": "MIP-001",
+          "description": "Model inference patterns must be monitored for inversion attacks",
+          "control": "continuous_monitoring",
+          "automatedCheck": true,
+          "frequency": "realtime"
+        },
+        {
+          "id": "MIP-002", 
+          "description": "Gradient information exposure must be limited",
+          "control": "gradient_masking",
+          "automatedCheck": true,
+          "frequency": "per_request"
+        },
+        {
+          "id": "MIP-003",
+          "description": "Membership inference attacks must be detected and mitigated",
+          "control": "membership_inference_detection",
+          "automatedCheck": true,
+          "frequency": "realtime"
+        }
+      ]
+    },
+    "dataExtractionPrevention": {
+      "frameworks": ["GDPR", "CCPA", "NIST_AI_RMF"],
+      "requirements": [
+        {
+          "id": "DEP-001",
+          "description": "Training data extraction attempts must be detected",
+          "control": "query_pattern_analysis",
+          "automatedCheck": true,
+          "frequency": "realtime"
+        },
+        {
+          "id": "DEP-002",
+          "description": "PII leakage through model outputs must be prevented",
+          "control": "output_sanitization",
+          "automatedCheck": true,
+          "frequency": "per_response"
+        }
+      ]
+    },
+    "adversarialRobustness": {
+      "frameworks": ["AI_ACT", "NIST_AI_RMF"],
+      "requirements": [
+        {
+          "id": "AR-001",
+          "description": "Models must be tested for adversarial robustness",
+          "control": "adversarial_testing",
+          "automatedCheck": true,
+          "frequency": "weekly"
+        },
+        {
+          "id": "AR-002",
+          "description": "Adversarial inputs must be detected in production",
+          "control": "adversarial_input_detection",
+          "automatedCheck": true,
+          "frequency": "realtime"
+        }
+      ]
+    }
+  },
+  "alertingRules": {
+    "criticalThreats": {
+      "escalationTime": 300,
+      "channels": ["pagerduty", "slack", "email"],
+      "recipients": ["security_team", "ciso", "model_owner"]
+    },
+    "highThreats": {
+      "escalationTime": 900,
+      "channels": ["slack", "email"],
+      "recipients": ["security_team", "model_owner"]
+    },
+    "mediumThreats": {
+      "escalationTime": 3600,
+      "channels": ["email"],
+      "recipients": ["model_owner"]
+    }
+  },
+  "reportingSchedule": {
+    "daily": ["threat_summary", "detection_statistics"],
+    "weekly": ["compliance_status", "risk_assessment"],
+    "monthly": ["full_audit_report", "policy_effectiveness"]
+  }
+}

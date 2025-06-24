@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth-routes';
 import { securityRoutes } from './routes/security-routes';
 import { agenticRoutes } from './routes/agentic-routes';
 import { monitoringRoutes } from './routes/monitoring-routes';
+import { threatConfigRoutes } from './routes/threat-config-routes';
 
 const app = express();
 

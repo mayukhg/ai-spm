@@ -1,0 +1,101 @@
+{
+  "aiSpecificThreats": {
+    "modelInversionAttacks": {
+      "enabled": true,
+      "severity": "high",
+      "detectionMethods": [
+        "gradient_analysis",
+        "inference_pattern_analysis",
+        "membership_inference_detection"
+      ],
+      "thresholds": {
+        "suspiciousInferenceCount": 1000,
+        "gradientAnomalyScore": 0.8,
+        "membershipInferenceConfidence": 0.7
+      },
+      "responseActions": [
+        "log_incident",
+        "alert_security_team",
+        "throttle_requests",
+        "require_additional_auth"
+      ]
+    },
+    "adversarialInputs": {
+      "enabled": true,
+      "severity": "medium",
+      "detectionMethods": [
+        "input_perturbation_analysis",
+        "prediction_confidence_monitoring"
+      ],
+      "thresholds": {
+        "perturbationThreshold": 0.1,
+        "confidenceDropThreshold": 0.3
+      },
+      "responseActions": [
+        "log_incident",
+        "reject_request",
+        "alert_model_owner"
+      ]
+    },
+    "dataExtraction": {
+      "enabled": true,
+      "severity": "critical",
+      "detectionMethods": [
+        "query_pattern_analysis",
+        "output_similarity_detection"
+      ],
+      "thresholds": {
+        "similarityThreshold": 0.9,
+        "queryVolumeThreshold": 500
+      },
+      "responseActions": [
+        "immediate_alert",
+        "block_source_ip",
+        "escalate_to_ciso",
+        "initiate_incident_response"
+      ]
+    },
+    "modelStealing": {
+      "enabled": true,
+      "severity": "high",
+      "detectionMethods": [
+        "api_usage_pattern_analysis",
+        "model_behavior_replication_detection"
+      ],
+      "thresholds": {
+        "apiCallVolumeThreshold": 10000,
+        "behaviorSimilarityThreshold": 0.85
+      },
+      "responseActions": [
+        "log_incident",
+        "rate_limit_aggressive",
+        "require_captcha",
+        "alert_legal_team"
+      ]
+    }
+  },
+  "detectionSettings": {
+    "scanInterval": 300,
+    "retentionPeriod": 2592000,
+    "alertCooldown": 900,
+    "batchSize": 1000
+  },
+  "integrations": {
+    "siemForwarding": true,
+    "slackNotifications": true,
+    "emailAlerts": true,
+    "webhookEndpoints": [
+      "/api/security/ai-threat-webhook"
+    ]
+  },
+  "riskScoring": {
+    "baseScore": 50,
+    "multipliers": {
+      "critical": 2.0,
+      "high": 1.5,
+      "medium": 1.0,
+      "low": 0.5
+    },
+    "decayFactor": 0.95
+  }
+}
