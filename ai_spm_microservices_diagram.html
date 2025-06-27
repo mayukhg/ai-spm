@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-SPM Microservices Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            font-family: 'Arial', sans-serif;
+            color: #ef4444;
+            overflow-x: auto;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            min-width: 1200px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #ef4444;
+        }
+
+        .architecture-diagram {
+            position: relative;
+            width: 100%;
+            height: 800px;
+            margin: 0 auto;
+        }
+
+        /* Component Styles */
+        .component {
+            position: absolute;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .component:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Frontend Components */
+        .frontend {
+            background-color: #1e3a8a;
+            border-color: #60a5fa;
+            color: #ef4444;
+        }
+
+        /* Gateway Components */
+        .gateway {
+            background-color: #7c2d12;
+            border-color: #fb923c;
+            color: #ef4444;
+        }
+
+        /* Microservice Components */
+        .microservice {
+            background-color: #14532d;
+            border-color: #4ade80;
+            color: #ef4444;
+        }
+
+        /* Database Components */
+        .database {
+            background-color: #92400e;
+            border-color: #fbbf24;
+            color: #ef4444;
+            border-radius: 50px;
+        }
+
+        /* External Components */
+        .external {
+            background-color: #7f1d1d;
+            border-color: #f87171;
+            color: #ef4444;
+        }
+
+        /* Infrastructure Components */
+        .infrastructure {
+            background-color: #374151;
+            border-color: #9ca3af;
+            color: #ef4444;
+        }
+
+        /* Connection Lines */
+        .connection {
+            position: absolute;
+            height: 2px;
+            background-color: #ef4444;
+            transform-origin: left center;
+            z-index: 1;
+        }
+
+        .connection.dashed {
+            background: repeating-linear-gradient(
+                to right,
+                #ef4444 0px,
+                #ef4444 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        /* Arrows */
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #ef4444;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            z-index: 2;
+        }
+
+        .arrow-up {
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 10px solid #ef4444;
+            border-top: none;
+        }
+
+        .arrow-down {
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 10px solid #ef4444;
+            border-bottom: none;
+        }
+
+        .arrow-left {
+            border-right: 10px solid #ef4444;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: none;
+        }
+
+        /* Connection animations */
+        .connection.animated {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* Specific Component Positions */
+        .user { top: 20px; left: 50%; transform: translateX(-50%); width: 80px; }
+        .cloudfront { top: 80px; left: 50%; transform: translateX(-50%); width: 150px; }
+        .frontend { top: 140px; left: 20%; width: 200px; }
+        .alb { top: 140px; right: 20%; width: 150px; }
+        .api-gateway { top: 220px; left: 50%; transform: translateX(-50%); width: 200px; }
+        .postgresql { top: 320px; left: 50%; transform: translateX(-50%); width: 180px; }
+
+        /* Microservices Row */
+        .ai-scanner { top: 420px; left: 5%; width: 180px; }
+        .data-integrity { top: 420px; left: 28%; width: 180px; }
+        .wiz-integration { top: 420px; left: 51%; width: 180px; }
+        .compliance-engine { top: 420px; left: 74%; width: 180px; }
+
+        /* External Service */
+        .wiz-platform { top: 520px; left: 51%; width: 180px; }
+
+        /* Service Mesh */
+        .service-mesh {
+            top: 580px;
+            left: 10%;
+            right: 10%;
+            height: 120px;
+            border: 2px dashed #9ca3af;
+            border-radius: 12px;
+            background-color: rgba(55, 65, 81, 0.1);
+        }
+
+        .service-mesh-label {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: #000000;
+            padding: 0 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .envoy {
+            position: absolute;
+            top: 30px;
+            width: 100px;
+            height: 60px;
+            background-color: #374151;
+            border: 2px solid #9ca3af;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .envoy1 { left: 10%; }
+        .envoy2 { left: 30%; }
+        .envoy3 { left: 50%; }
+        .envoy4 { left: 70%; }
+
+        /* AWS Infrastructure */
+        .aws-box {
+            top: 50px;
+            right: 50px;
+            width: 300px;
+            height: 200px;
+            border: 2px solid #9ca3af;
+            border-radius: 12px;
+            background-color: rgba(55, 65, 81, 0.1);
+        }
+
+        .aws-label {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: #000000;
+            padding: 0 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .aws-component {
+            position: absolute;
+            font-size: 10px;
+            padding: 6px 8px;
+            width: 80px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .vpc { top: 20px; left: 20px; }
+        .ecr { top: 20px; right: 20px; }
+        .s3 { top: 70px; left: 20px; }
+        .ecs { top: 70px; right: 20px; }
+        .rds { top: 120px; left: 50%; transform: translateX(-50%); }
+
+        /* Features and APIs boxes */
+        .features-box {
+            bottom: 50px;
+            left: 50px;
+            width: 250px;
+            height: 120px;
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            background-color: rgba(20, 83, 45, 0.1);
+        }
+
+        .apis-box {
+            bottom: 50px;
+            right: 50px;
+            width: 250px;
+            height: 120px;
+            border: 2px solid #60a5fa;
+            border-radius: 12px;
+            background-color: rgba(30, 58, 138, 0.1);
+        }
+
+        .box-label {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: #000000;
+            padding: 0 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .feature-item, .api-item {
+            position: absolute;
+            font-size: 10px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .feature-item {
+            background-color: #14532d;
+            border: 1px solid #4ade80;
+        }
+
+        .api-item {
+            background-color: #1e3a8a;
+            border: 1px solid #60a5fa;
+        }
+
+        /* Feature positions */
+        .auth-feature { top: 20px; left: 10px; width: 70px; }
+        .monitoring-feature { top: 20px; right: 10px; width: 70px; }
+        .compliance-feature { top: 50px; left: 10px; width: 70px; }
+        .asset-feature { top: 50px; right: 10px; width: 70px; }
+        .vuln-feature { top: 80px; left: 30%; width: 70px; }
+
+        /* API positions */
+        .auth-api { top: 20px; left: 10px; width: 70px; }
+        .asset-api { top: 20px; right: 10px; width: 70px; }
+        .vuln-api { top: 50px; left: 10px; width: 70px; }
+        .comp-api { top: 50px; right: 10px; width: 70px; }
+        .dash-api { top: 80px; left: 30%; width: 70px; }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">AI-SPM Microservices Architecture</h1>
+        
+        <div class="architecture-diagram">
+            <!-- User and Entry Points -->
+            <div class="component infrastructure user">User</div>
+            <div class="component infrastructure cloudfront">CloudFront<br/>Distribution</div>
+            
+            <!-- Frontend and Load Balancer -->
+            <div class="component frontend frontend">React Frontend<br/>React 18 + TypeScript<br/>Tailwind CSS</div>
+            <div class="component infrastructure alb">Application<br/>Load Balancer</div>
+            
+            <!-- API Gateway -->
+            <div class="component gateway api-gateway">Node.js API Gateway<br/>Express.js + TypeScript<br/>Port: 5000</div>
+            
+            <!-- Database -->
+            <div class="component database postgresql">PostgreSQL 13+<br/>Centralized Database<br/>Drizzle ORM</div>
+            
+            <!-- Microservices -->
+            <div class="component microservice ai-scanner">AI Scanner Service<br/>FastAPI + Python 3.9+<br/>Port: 8001<br/>Model Security</div>
+            <div class="component microservice data-integrity">Data Integrity Service<br/>FastAPI + Python 3.9+<br/>Port: 8002<br/>Quality Monitoring</div>
+            <div class="component microservice wiz-integration">Wiz Integration Service<br/>FastAPI + Python 3.9+<br/>Port: 8003<br/>External Security</div>
+            <div class="component microservice compliance-engine">Compliance Engine<br/>FastAPI + Python 3.9+<br/>Port: 8004<br/>Policy Assessment</div>
+            
+            <!-- External Service -->
+            <div class="component external wiz-platform">Wiz Security Platform<br/>External Cloud Security</div>
+            
+            <!-- Connection Lines and Arrows -->
+            <!-- User to CloudFront -->
+            <div class="connection animated" style="top: 60px; left: 50%; width: 40px; transform: translateX(-50%) rotate(90deg);"></div>
+            <div class="arrow arrow-down" style="top: 96px; left: 50%; transform: translateX(-50%);"></div>
+            
+            <!-- CloudFront to Frontend -->
+            <div class="connection animated" style="top: 120px; left: 30%; width: 120px; transform: rotate(-20deg);"></div>
+            <div class="arrow" style="top: 136px; left: 25%; transform: rotate(-20deg);"></div>
+            
+            <!-- CloudFront to ALB -->
+            <div class="connection animated" style="top: 120px; right: 30%; width: 120px; transform: rotate(20deg);"></div>
+            <div class="arrow" style="top: 136px; right: 25%; transform: rotate(20deg);"></div>
+            
+            <!-- ALB to API Gateway -->
+            <div class="connection animated" style="top: 180px; right: 20%; width: 120px; transform: rotate(45deg);"></div>
+            <div class="arrow" style="top: 196px; right: 15%; transform: rotate(45deg);"></div>
+            
+            <!-- API Gateway to PostgreSQL -->
+            <div class="connection animated" style="top: 280px; left: 50%; width: 40px; transform: translateX(-50%) rotate(90deg);"></div>
+            <div class="arrow arrow-down" style="top: 316px; left: 50%; transform: translateX(-50%);"></div>
+            
+            <!-- API Gateway to Microservices -->
+            <!-- To AI Scanner -->
+            <div class="connection dashed animated" style="top: 280px; left: 35%; width: 150px; transform: rotate(35deg);"></div>
+            <div class="arrow" style="top: 296px; left: 20%; transform: rotate(35deg);"></div>
+            
+            <!-- To Data Integrity -->
+            <div class="connection dashed animated" style="top: 280px; left: 45%; width: 100px; transform: rotate(55deg);"></div>
+            <div class="arrow" style="top: 296px; left: 40%; transform: rotate(55deg);"></div>
+            
+            <!-- To Wiz Integration -->
+            <div class="connection dashed animated" style="top: 280px; right: 45%; width: 100px; transform: rotate(-55deg);"></div>
+            <div class="arrow" style="top: 296px; right: 40%; transform: rotate(-55deg);"></div>
+            
+            <!-- To Compliance Engine -->
+            <div class="connection dashed animated" style="top: 280px; right: 35%; width: 150px; transform: rotate(-35deg);"></div>
+            <div class="arrow" style="top: 296px; right: 20%; transform: rotate(-35deg);"></div>
+            
+            <!-- Wiz Integration to Wiz Platform -->
+            <div class="connection dashed animated" style="top: 500px; left: 60%; width: 60px; transform: rotate(90deg);"></div>
+            <div class="arrow arrow-down" style="top: 516px; left: 60%; transform: translateX(-50%);"></div>
+            
+            <!-- Inter-microservice connections via Service Mesh -->
+            <!-- AI Scanner to Data Integrity -->
+            <div class="connection dashed" style="top: 460px; left: 18%; width: 120px;"></div>
+            <div class="arrow" style="top: 456px; left: 32%;"></div>
+            
+            <!-- Data Integrity to Wiz Integration -->
+            <div class="connection dashed" style="top: 460px; left: 41%; width: 120px;"></div>
+            <div class="arrow" style="top: 456px; left: 55%;"></div>
+            
+            <!-- Wiz Integration to Compliance Engine -->
+            <div class="connection dashed" style="top: 460px; left: 64%; width: 120px;"></div>
+            <div class="arrow" style="top: 456px; left: 78%;"></div>
+            
+            <!-- Service Mesh mTLS connections -->
+            <div class="connection" style="top: 620px; left: 15%; width: 80px;"></div>
+            <div class="connection" style="top: 620px; left: 35%; width: 80px;"></div>
+            <div class="connection" style="top: 620px; left: 55%; width: 80px;"></div>
+            
+            <!-- Bidirectional arrows for mTLS -->
+            <div class="arrow" style="top: 616px; left: 28%;"></div>
+            <div class="arrow arrow-left" style="top: 616px; left: 22%;"></div>
+            <div class="arrow" style="top: 616px; left: 48%;"></div>
+            <div class="arrow arrow-left" style="top: 616px; left: 42%;"></div>
+            <div class="arrow" style="top: 616px; left: 68%;"></div>
+            <div class="arrow arrow-left" style="top: 616px; left: 62%;"></div>
+            
+            <!-- Service Mesh -->
+            <div class="service-mesh">
+                <div class="service-mesh-label">Istio Service Mesh</div>
+                <div class="envoy envoy1 infrastructure">Envoy<br/>Proxy 1</div>
+                <div class="envoy envoy2 infrastructure">Envoy<br/>Proxy 2</div>
+                <div class="envoy envoy3 infrastructure">Envoy<br/>Proxy 3</div>
+                <div class="envoy envoy4 infrastructure">Envoy<br/>Proxy 4</div>
+            </div>
+            
+            <!-- AWS Infrastructure -->
+            <div class="aws-box">
+                <div class="aws-label">AWS Cloud Infrastructure</div>
+                <div class="aws-component infrastructure vpc">VPC<br/>Subnets</div>
+                <div class="aws-component infrastructure ecr">ECR<br/>Repository</div>
+                <div class="aws-component infrastructure s3">S3<br/>Bucket</div>
+                <div class="aws-component infrastructure ecs">ECS<br/>Fargate</div>
+                <div class="aws-component infrastructure rds">RDS<br/>PostgreSQL</div>
+            </div>
+            
+            <!-- Features Box -->
+            <div class="features-box">
+                <div class="box-label">Key System Features</div>
+                <div class="feature-item auth-feature">Authentication<br/>& RBAC</div>
+                <div class="feature-item monitoring-feature">Real-time<br/>Monitoring</div>
+                <div class="feature-item compliance-feature">Compliance<br/>Management</div>
+                <div class="feature-item asset-feature">AI Asset<br/>Management</div>
+                <div class="feature-item vuln-feature">Vulnerability<br/>Management</div>
+            </div>
+            
+            <!-- APIs Box -->
+            <div class="apis-box">
+                <div class="box-label">Main API Endpoints</div>
+                <div class="api-item auth-api">Auth<br/>Endpoints</div>
+                <div class="api-item asset-api">Asset<br/>Endpoints</div>
+                <div class="api-item vuln-api">Vulnerability<br/>Endpoints</div>
+                <div class="api-item comp-api">Compliance<br/>Endpoints</div>
+                <div class="api-item dash-api">Dashboard<br/>Endpoints</div>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box frontend"></div>
+                <span>Frontend</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box gateway"></div>
+                <span>API Gateway</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box microservice"></div>
+                <span>Microservices</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box database"></div>
+                <span>Database</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box external"></div>
+                <span>External</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box infrastructure"></div>
+                <span>Infrastructure</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add interactive features
+        document.querySelectorAll('.component').forEach(component => {
+            component.addEventListener('click', function() {
+                const componentName = this.textContent.split('\n')[0];
+                
+                // Create detailed info based on component type
+                let details = '';
+                if (componentName.includes('AI Scanner')) {
+                    details = 'AI Scanner Service:\n• Model vulnerability scanning\n• Bias detection\n• Security risk assessment\n• Endpoints: /scan/model, /scan/bias, /scan/status';
+                } else if (componentName.includes('Data Integrity')) {
+                    details = 'Data Integrity Service:\n• Data quality validation\n• Anomaly detection\n• Data drift monitoring\n• Endpoints: /check/quality, /check/anomalies, /check/drift';
+                } else if (componentName.includes('Wiz Integration')) {
+                    details = 'Wiz Integration Service:\n• External security platform integration\n• Cloud security data sync\n• Alert processing\n• Endpoints: /integrate, /transform/alerts, /sync/assets';
+                } else if (componentName.includes('Compliance')) {
+                    details = 'Compliance Engine:\n• Multi-framework compliance (NIST AI RMF, GDPR, SOC 2)\n• Policy evaluation\n• Automated assessments\n• Endpoints: /assess/framework, /evaluate/policy';
+                } else if (componentName.includes('API Gateway')) {
+                    details = 'Node.js API Gateway:\n• Central authentication & authorization\n• Request routing to microservices\n• Rate limiting & security\n• Session management';
+                } else if (componentName.includes('PostgreSQL')) {
+                    details = 'PostgreSQL Database:\n• Centralized data storage\n• Drizzle ORM integration\n• Connection pooling\n• ACID compliance';
+                } else {
+                    details = `Component: ${componentName}\n\nPart of the AI-SPM microservices architecture.`;
+                }
+                
+                alert(details);
+            });
+        });
+
+        // Add connection flow animation
+        function animateDataFlow() {
+            const connections = document.querySelectorAll('.connection.animated');
+            connections.forEach((conn, index) => {
+                setTimeout(() => {
+                    conn.style.boxShadow = '0 0 10px #ef4444';
+                    setTimeout(() => {
+                        conn.style.boxShadow = 'none';
+                    }, 800);
+                }, index * 300);
+            });
+        }
+
+        // Highlight connection paths on hover
+        document.querySelectorAll('.component').forEach(component => {
+            component.addEventListener('mouseenter', function() {
+                // Add glow effect to related connections
+                if (this.classList.contains('api-gateway')) {
+                    document.querySelectorAll('.connection.dashed').forEach(conn => {
+                        conn.style.boxShadow = '0 0 8px #ef4444';
+                    });
+                }
+            });
+            
+            component.addEventListener('mouseleave', function() {
+                document.querySelectorAll('.connection').forEach(conn => {
+                    conn.style.boxShadow = 'none';
+                });
+            });
+        });
+
+        // Run flow animation every 8 seconds
+        setInterval(animateDataFlow, 8000);
+        
+        // Initial animation
+        setTimeout(animateDataFlow, 1000);
+    </script>
+</body>
+</html>
