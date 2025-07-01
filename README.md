@@ -167,7 +167,18 @@ The platform implements a modern hybrid microservices architecture with **Istio 
 │   ├── gateway.ts         # Microservices gateway
 │   ├── microservices-gateway.ts # Service discovery
 │   ├── index.ts           # Server entry point
-│   └── vite.ts            # Development server setup
+│   ├── vite.ts            # Development server setup
+│   ├── monitoring/        # Comprehensive monitoring system
+│   │   ├── logger.ts      # Structured logging with Winston
+│   │   ├── metrics-collector.ts # Prometheus metrics collection
+│   │   ├── health-checker.ts    # Component health monitoring
+│   │   └── notification-manager.ts # Multi-channel alerting
+│   ├── routes/
+│   │   ├── monitoring-routes.ts # Monitoring API endpoints
+│   │   └── threat-config-routes.ts # Threat configuration APIs
+│   └── config/            # Runtime configuration
+│       ├── threat-detection-config.json # AI threat rules
+│       └── compliance-policies.json     # Compliance policies
 ├── microservices/         # Python Microservices
 │   ├── ai-scanner/        # AI security analysis service
 │   │   ├── main.py        # FastAPI application
