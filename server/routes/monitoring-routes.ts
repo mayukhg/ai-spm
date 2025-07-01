@@ -1,77 +1,15 @@
 /**
- * Monitoring and Health Check API Routes
- * Provides endpoints for system health monitoring, metrics, and alerting
+ * Monitoring and Observability API Routes
+ * Comprehensive system monitoring and health endpoints
  */
 
 import express from 'express';
-import { HealthCheckerService, HealthStatus, AlertSeverity } from '../monitoring/health-checker';
-import { NotificationManager } from '../monitoring/notification-manager';
-import rateLimit from 'express-rate-limit';
-import { z } from 'zod';
+import { logger, SecurityEventType } from '../monitoring/logger';
+import { metrics } from '../monitoring/metrics-collector';
+import { healthChecker } from '../monitoring/health-checker';
+import { notificationManager } from '../monitoring/notification-manager';
 
 const router = express.Router();
-
-// Initialize monitoring services
-const healthChecker = new HealthCheckerService();
-const notificationManager = new NotificationManager();
-
-// Rate limiting for monitoring endpoints
-const monitoringRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // Limit each IP to 60 requests per minute
-  message: 'Too many monitoring requests from this IP'
-});
-
-router.use(monitoringRateLimit);
-
-// Validation schemas
-const ThresholdUpdateSchema = z.object({
-  responseTime: z.number().positive().optional(),
-  errorRate: z.number().min(0).max(100).optional(),
-  cpuUsage: z.number().min(0).max(100).optional(),
-  memoryUsage: z.number().min(0).max(100).optional(),
-  diskUsage: z.number().min(0).max(100).optional(),
-  queryLatency: z.number().positive().optional(),
-  agentHealthScore: z.number().min(0).max(100).optional(),
-  complianceScore: z.number().min(0).max(100).optional()
-});
-
-const NotificationChannelSchema = z.object({
-  name: z.string().min(1).max(50),
-  type: z.enum(['email', 'slack', 'pagerduty', 'sms', 'webhook', 'teams', 'servicenow']),
-  enabled: z.boolean().default(true),
-  config: z.object({
-    slack: z.object({
-      webhookUrl: z.string().url(),
-      channel: z.string(),
-      username: z.string().optional(),
-      iconEmoji: z.string().optional()
-    }).optional(),
-    email: z.object({
-      smtp: z.object({
-        host: z.string(),
-        port: z.number(),
-        secure: z.boolean(),
-        auth: z.object({
-          user: z.string(),
-          pass: z.string()
-        }),
-        from: z.string().email(),
-        to: z.array(z.string().email())
-      })
-    }).optional(),
-    pagerduty: z.object({
-      integrationKey: z.string(),
-      severity: z.string().optional()
-    }).optional(),
-    webhook: z.object({
-      url: z.string().url(),
-      method: z.enum(['POST', 'PUT']),
-      headers: z.record(z.string()),
-      timeout: z.number().positive()
-    }).optional()
-  })
-});
 
 // Middleware for authentication (simplified for demo)
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -82,63 +20,37 @@ const requireAuth = (req: express.Request, res: express.Response, next: express.
   }
   
   // Mock user context
-  (req as any).user = { id: 'user-123', roles: ['admin'] };
+  (req as any).user = { id: 'user-123', roles: ['security_admin'] };
   next();
 };
-
-// Middleware for admin permissions
-const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const user = (req as any).user;
-  if (!user || !user.roles.includes('admin')) {
-    return res.status(403).json({ error: 'Administrator permissions required' });
-  }
-  next();
-};
-
-// =============================================================================
-// Health Check Endpoints
-// =============================================================================
 
 /**
  * Get comprehensive system health status
  */
 router.get('/health', async (req, res) => {
   try {
-    const healthStatus = await healthChecker.getSystemHealth();
+    const health = await healthChecker.performAllHealthChecks();
     
-    res.json({
+    // Log health check request
+    logger.info('System health check requested', {
+      overallStatus: health.overall,
+      componentCount: health.components.length,
+      requestedBy: (req as any).user?.id || 'anonymous'
+    });
+    
+    res.status(health.overall === 'unhealthy' ? 503 : 200).json({
       success: true,
-      health: healthStatus,
-      message: `System status: ${healthStatus.status}`
+      health,
+      message: 'System health status retrieved successfully'
     });
   } catch (error) {
+    logger.error('Failed to get system health', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get system health',
+      error: 'Failed to retrieve system health',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-});
-
-/**
- * Get basic health check (lightweight)
- */
-router.get('/health/basic', (req, res) => {
-  const uptime = process.uptime();
-  const memoryUsage = process.memoryUsage();
-  
-  res.json({
-    success: true,
-    status: 'healthy',
-    uptime: uptime,
-    timestamp: new Date().toISOString(),
-    memory: {
-      used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
-      total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-      external: Math.round(memoryUsage.external / 1024 / 1024)
-    },
-    version: process.env.APP_VERSION || '1.0.0'
-  });
 });
 
 /**
@@ -147,162 +59,142 @@ router.get('/health/basic', (req, res) => {
 router.get('/health/:component', async (req, res) => {
   try {
     const { component } = req.params;
-    const healthStatus = await healthChecker.getSystemHealth();
-    
-    const componentHealth = healthStatus.components[component as keyof typeof healthStatus.components];
+    const componentHealth = await healthChecker.getComponentHealth(component);
     
     if (!componentHealth) {
       return res.status(404).json({
         success: false,
-        error: 'Component not found',
-        available_components: Object.keys(healthStatus.components)
+        error: `Component '${component}' not found`
       });
     }
     
     res.json({
       success: true,
       component: componentHealth,
-      message: `${component} status: ${componentHealth.status}`
+      message: `Health status for ${component} retrieved successfully`
     });
   } catch (error) {
+    logger.error(`Failed to get health for component ${req.params.component}`, error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get component health',
+      error: 'Failed to retrieve component health',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// =============================================================================
-// Metrics Endpoints
-// =============================================================================
-
 /**
- * Get system metrics
+ * Get system metrics in Prometheus format
  */
 router.get('/metrics', async (req, res) => {
   try {
-    const healthStatus = await healthChecker.getSystemHealth();
-    
-    res.json({
-      success: true,
-      metrics: healthStatus.metrics,
-      timestamp: healthStatus.timestamp,
-      message: 'Metrics retrieved successfully'
-    });
+    const metricsData = await metrics.getMetrics();
+    res.set('Content-Type', 'text/plain');
+    res.send(metricsData);
   } catch (error) {
+    logger.error('Failed to get metrics', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get system metrics',
+      error: 'Failed to retrieve metrics',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 /**
- * Get metrics for specific category
+ * Get system performance summary
  */
-router.get('/metrics/:category', async (req, res) => {
+router.get('/performance', requireAuth, async (req, res) => {
   try {
-    const { category } = req.params;
-    const healthStatus = await healthChecker.getSystemHealth();
+    const memUsage = process.memoryUsage();
+    const uptime = process.uptime();
     
-    const categoryMetrics = healthStatus.metrics[category as keyof typeof healthStatus.metrics];
-    
-    if (!categoryMetrics) {
-      return res.status(404).json({
-        success: false,
-        error: 'Metrics category not found',
-        available_categories: Object.keys(healthStatus.metrics)
-      });
-    }
+    const performanceData = {
+      uptime: {
+        seconds: uptime,
+        human: formatUptime(uptime)
+      },
+      memory: {
+        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+        external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
+        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+        heapUsedPercent: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
+      },
+      process: {
+        pid: process.pid,
+        version: process.version,
+        platform: process.platform,
+        arch: process.arch
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV || 'development',
+        port: process.env.PORT || 5000
+      }
+    };
     
     res.json({
       success: true,
-      category,
-      metrics: categoryMetrics,
-      timestamp: healthStatus.timestamp,
-      message: `${category} metrics retrieved successfully`
+      performance: performanceData,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
+    logger.error('Failed to get performance data', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get category metrics',
+      error: 'Failed to retrieve performance data',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 /**
- * Get Prometheus-formatted metrics
+ * Get active alerts
  */
-router.get('/metrics/prometheus', async (req, res) => {
+router.get('/alerts', requireAuth, (req, res) => {
   try {
-    const healthStatus = await healthChecker.getSystemHealth();
-    
-    // Convert metrics to Prometheus format
-    const prometheusMetrics = convertToPrometheusFormat(healthStatus);
-    
-    res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
-    res.send(prometheusMetrics);
-  } catch (error) {
-    res.status(500).text('# Error: Failed to generate Prometheus metrics');
-  }
-});
-
-// =============================================================================
-// Alert Management Endpoints
-// =============================================================================
-
-/**
- * Get recent alerts
- */
-router.get('/alerts', requireAuth, async (req, res) => {
-  try {
-    const { limit = 50, severity, component } = req.query;
-    
-    let alerts = healthChecker.getRecentAlerts(Number(limit));
-    
-    // Filter by severity if specified
-    if (severity) {
-      alerts = alerts.filter(alert => alert.severity === severity);
-    }
-    
-    // Filter by component if specified
-    if (component) {
-      alerts = alerts.filter(alert => alert.component === component);
-    }
+    const alerts = notificationManager.getActiveAlerts();
     
     res.json({
       success: true,
       alerts,
-      total: alerts.length,
-      message: 'Alerts retrieved successfully'
+      count: alerts.length,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
+    logger.error('Failed to get alerts', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get alerts',
+      error: 'Failed to retrieve alerts',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 /**
- * Acknowledge alert
+ * Acknowledge an alert
  */
 router.post('/alerts/:alertId/acknowledge', requireAuth, async (req, res) => {
   try {
     const { alertId } = req.params;
-    const userId = (req as any).user.id;
+    const acknowledgedBy = (req as any).user?.id || 'unknown';
     
-    notificationManager.acknowledgeAlert(alertId, userId);
+    await notificationManager.acknowledgeAlert(alertId, acknowledgedBy);
+    
+    logger.audit('alert_acknowledged', `alert:${alertId}`, {
+      alertId,
+      acknowledgedBy,
+      timestamp: new Date().toISOString()
+    });
     
     res.json({
       success: true,
-      message: 'Alert acknowledged successfully'
+      message: `Alert ${alertId} acknowledged successfully`,
+      acknowledgedBy,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
+    logger.error(`Failed to acknowledge alert ${req.params.alertId}`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to acknowledge alert',
@@ -312,267 +204,194 @@ router.post('/alerts/:alertId/acknowledge', requireAuth, async (req, res) => {
 });
 
 /**
- * Test alert notification
+ * Resolve an alert
  */
-router.post('/alerts/test', requireAuth, requireAdmin, async (req, res) => {
+router.post('/alerts/:alertId/resolve', requireAuth, async (req, res) => {
   try {
-    const { channels, severity = 'info' } = req.body;
+    const { alertId } = req.params;
+    const resolvedBy = (req as any).user?.id || 'unknown';
     
-    if (!Array.isArray(channels) || channels.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Channels array is required'
-      });
-    }
+    await notificationManager.resolveAlert(alertId, resolvedBy);
+    
+    logger.audit('alert_resolved', `alert:${alertId}`, {
+      alertId,
+      resolvedBy,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      success: true,
+      message: `Alert ${alertId} resolved successfully`,
+      resolvedBy,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Failed to resolve alert ${req.params.alertId}`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to resolve alert',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Test notification channels
+ */
+router.post('/notifications/test/:channel', requireAuth, async (req, res) => {
+  try {
+    const { channel } = req.params;
+    const success = await notificationManager.testChannel(channel);
+    
+    logger.audit('notification_test', `channel:${channel}`, {
+      channel,
+      success,
+      testedBy: (req as any).user?.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      success,
+      message: success 
+        ? `Test notification sent successfully to ${channel}`
+        : `Test notification failed for ${channel}`,
+      channel,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Failed to test notification channel ${req.params.channel}`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test notification channel',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Get notification channels status
+ */
+router.get('/notifications/channels', requireAuth, (req, res) => {
+  try {
+    const channels = notificationManager.getChannelsStatus();
+    
+    res.json({
+      success: true,
+      channels,
+      count: channels.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Failed to get notification channels', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve notification channels',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Create test alert for demonstration
+ */
+router.post('/alerts/test', requireAuth, async (req, res) => {
+  try {
+    const { severity = 'medium', type = 'test', message = 'Test alert from monitoring system' } = req.body;
     
     const testAlert = {
-      id: `test-${Date.now()}`,
-      name: 'test_notification',
-      description: 'This is a test notification from AI-SPM monitoring system',
-      severity: severity as AlertSeverity,
-      component: 'monitoring_system',
-      timestamp: new Date(),
-      tags: ['test', 'monitoring']
+      id: `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      severity,
+      title: 'Test Alert',
+      message,
+      source: 'monitoring-api',
+      timestamp: new Date().toISOString(),
+      metadata: {
+        createdBy: (req as any).user?.id,
+        test: true
+      }
     };
     
-    const results = await notificationManager.sendAlert(testAlert, channels);
+    await notificationManager.sendAlert(testAlert);
+    
+    logger.audit('test_alert_created', 'alert:test', {
+      alertId: testAlert.id,
+      severity,
+      createdBy: (req as any).user?.id
+    });
     
     res.json({
       success: true,
       alert: testAlert,
-      results,
-      message: 'Test alert sent successfully'
+      message: 'Test alert created and sent successfully'
     });
   } catch (error) {
+    logger.error('Failed to create test alert', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to send test alert',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// =============================================================================
-// Configuration Endpoints
-// =============================================================================
-
-/**
- * Update alert thresholds
- */
-router.put('/config/thresholds', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const thresholds = ThresholdUpdateSchema.parse(req.body);
-    
-    healthChecker.updateThresholds(thresholds);
-    
-    res.json({
-      success: true,
-      thresholds,
-      message: 'Alert thresholds updated successfully'
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: error.errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update thresholds',
+      error: 'Failed to create test alert',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 /**
- * Get notification channels
+ * Get system logs (recent entries)
  */
-router.get('/config/channels', requireAuth, async (req, res) => {
+router.get('/logs', requireAuth, (req, res) => {
   try {
-    const channels = notificationManager.getChannels();
+    const { level = 'info', limit = 100, category } = req.query;
     
-    // Remove sensitive information
-    const sanitizedChannels = channels.map(channel => ({
-      ...channel,
-      config: {
-        ...Object.keys(channel.config).reduce((acc, key) => {
-          acc[key] = '[CONFIGURED]';
-          return acc;
-        }, {} as any)
-      }
-    }));
-    
-    res.json({
-      success: true,
-      channels: sanitizedChannels,
-      message: 'Notification channels retrieved successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get notification channels',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-/**
- * Add notification channel
- */
-router.post('/config/channels', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const channelData = NotificationChannelSchema.parse(req.body);
-    
-    notificationManager.addChannel(channelData);
-    
-    res.status(201).json({
-      success: true,
-      channel: {
-        ...channelData,
-        config: '[CONFIGURED]' // Don't return sensitive config
+    // This would require implementing log reading functionality
+    // For now, return mock recent logs
+    const recentLogs = [
+      {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'System monitoring endpoint accessed',
+        category: 'application',
+        correlationId: 'monitor-123'
       },
-      message: 'Notification channel added successfully'
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: error.errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add notification channel',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-/**
- * Remove notification channel
- */
-router.delete('/config/channels/:channelName', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { channelName } = req.params;
-    
-    notificationManager.removeChannel(channelName);
+      {
+        timestamp: new Date(Date.now() - 60000).toISOString(),
+        level: 'info',
+        message: 'Health check completed successfully',
+        category: 'system',
+        correlationId: 'health-456'
+      }
+    ];
     
     res.json({
       success: true,
-      message: 'Notification channel removed successfully'
+      logs: recentLogs,
+      count: recentLogs.length,
+      filters: { level, limit, category },
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
+    logger.error('Failed to get logs', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to remove notification channel',
+      error: 'Failed to retrieve logs',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-/**
- * Get active escalations
- */
-router.get('/escalations', requireAuth, async (req, res) => {
-  try {
-    const escalations = notificationManager.getActiveEscalations();
-    
-    res.json({
-      success: true,
-      escalations,
-      total: escalations.length,
-      message: 'Active escalations retrieved successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get active escalations',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// =============================================================================
-// Utility Functions
-// =============================================================================
-
-/**
- * Convert metrics to Prometheus format
- */
-function convertToPrometheusFormat(healthStatus: any): string {
-  const lines: string[] = [];
-  const timestamp = Date.now();
+// Utility function to format uptime
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
   
-  // System health status
-  lines.push(`# HELP ai_spm_system_health System health status (0=unhealthy, 1=degraded, 2=healthy)`);
-  lines.push(`# TYPE ai_spm_system_health gauge`);
-  const healthValue = healthStatus.status === 'healthy' ? 2 : healthStatus.status === 'degraded' ? 1 : 0;
-  lines.push(`ai_spm_system_health ${healthValue} ${timestamp}`);
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0) parts.push(`${secs}s`);
   
-  // Application metrics
-  const appMetrics = healthStatus.metrics.application;
-  lines.push(`# HELP ai_spm_api_response_time_ms API response time in milliseconds`);
-  lines.push(`# TYPE ai_spm_api_response_time_ms gauge`);
-  lines.push(`ai_spm_api_response_time_ms ${appMetrics.apiGateway.responseTime} ${timestamp}`);
-  
-  lines.push(`# HELP ai_spm_api_throughput_rps API throughput in requests per second`);
-  lines.push(`# TYPE ai_spm_api_throughput_rps gauge`);
-  lines.push(`ai_spm_api_throughput_rps ${appMetrics.apiGateway.throughput} ${timestamp}`);
-  
-  lines.push(`# HELP ai_spm_api_error_rate_percent API error rate percentage`);
-  lines.push(`# TYPE ai_spm_api_error_rate_percent gauge`);
-  lines.push(`ai_spm_api_error_rate_percent ${appMetrics.apiGateway.errorRate} ${timestamp}`);
-  
-  // Infrastructure metrics
-  const infraMetrics = healthStatus.metrics.infrastructure;
-  lines.push(`# HELP ai_spm_cpu_usage_percent CPU usage percentage`);
-  lines.push(`# TYPE ai_spm_cpu_usage_percent gauge`);
-  lines.push(`ai_spm_cpu_usage_percent ${infraMetrics.compute.cpuUsage} ${timestamp}`);
-  
-  lines.push(`# HELP ai_spm_memory_usage_percent Memory usage percentage`);
-  lines.push(`# TYPE ai_spm_memory_usage_percent gauge`);
-  lines.push(`ai_spm_memory_usage_percent ${infraMetrics.compute.memoryUsage} ${timestamp}`);
-  
-  // Agentic workflow metrics
-  const agenticMetrics = healthStatus.metrics.agentic;
-  lines.push(`# HELP ai_spm_active_agents Number of active agents`);
-  lines.push(`# TYPE ai_spm_active_agents gauge`);
-  lines.push(`ai_spm_active_agents ${agenticMetrics.agents.activeAgents} ${timestamp}`);
-  
-  lines.push(`# HELP ai_spm_agent_health_score Average agent health score`);
-  lines.push(`# TYPE ai_spm_agent_health_score gauge`);
-  lines.push(`ai_spm_agent_health_score ${agenticMetrics.agents.averageHealthScore} ${timestamp}`);
-  
-  return lines.join('\n') + '\n';
+  return parts.join(' ') || '0s';
 }
-
-// Set up event listeners for real-time monitoring
-healthChecker.on('alert', (alert) => {
-  console.log(`New alert generated: ${alert.name} (${alert.severity})`);
-  
-  // Auto-escalate critical alerts
-  if (alert.severity === AlertSeverity.CRITICAL) {
-    notificationManager.startEscalation(alert, 'critical').catch(error => {
-      console.error('Failed to start escalation:', error);
-    });
-  }
-});
-
-healthChecker.on('healthCheckCompleted', (event) => {
-  console.log(`Health check completed in ${event.duration.toFixed(2)}ms - Status: ${event.status.status}`);
-});
-
-notificationManager.on('notificationSent', (event) => {
-  console.log(`Notification sent via ${event.channel} for alert ${event.alert.id}`);
-});
-
-notificationManager.on('escalationStarted', (event) => {
-  console.log(`Escalation started for alert ${event.alert.id} using policy ${event.policy.name}`);
-});
 
 export { router as monitoringRoutes };
