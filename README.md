@@ -842,6 +842,108 @@ PUT /api/adversarial-detection/config             # Update response configuratio
 POST /api/adversarial-detection/test              # Test with sample data
 ```
 
+### 📋 **NEW: Automated Compliance Assessment Workflows**
+Comprehensive compliance management system with evidence collection and automated report generation for regulatory frameworks:
+
+#### **Evidence Collection Engine**
+- **Automated Evidence Gathering**: Systematic collection from configuration files, audit logs, scan results, and policy documents
+- **Framework-Specific Mapping**: Evidence requirements mapped to NIST AI RMF, EU AI Act, and GDPR controls
+- **Real-time Validation**: Integrity checks with hash verification and freshness validation
+- **Scheduled Collection**: Configurable automatic evidence collection with retention policies
+- **Multi-source Integration**: Collects from databases, configuration files, security scans, and external systems
+
+#### **Compliance Report Generator**
+- **Multi-Format Reports**: PDF, Excel, HTML, and JSON output formats with professional styling
+- **Framework Templates**: Pre-configured templates for NIST AI RMF, EU AI Act, and GDPR compliance
+- **Executive Summaries**: High-level compliance scores with critical findings and recommendations
+- **Detailed Technical Reports**: Comprehensive evidence inventory with gap analysis
+- **Automated Remediation Plans**: Priority-based recommendations with implementation timelines
+
+#### **Compliance Assessment Features**
+- **Gap Analysis**: Automated identification of missing evidence and non-compliant controls
+- **Risk Scoring**: Quantitative compliance scores with risk level classification
+- **Evidence Validation**: Automated verification of evidence integrity and completeness
+- **Audit Trail**: Comprehensive logging of all compliance activities for regulatory requirements
+- **Real-time Monitoring**: Continuous compliance status tracking with alerting
+
+### **API Endpoints for Compliance Management**
+
+#### Evidence Collection
+```bash
+POST /api/compliance/evidence/collect
+{
+  "framework": "nist_ai_rmf" | "eu_ai_act" | "gdpr",
+  "dateRange": {
+    "startDate": "2024-01-01T00:00:00Z",
+    "endDate": "2024-12-31T23:59:59Z"
+  }
+}
+```
+
+#### Report Generation
+```bash
+POST /api/compliance/reports/generate
+{
+  "framework": "nist_ai_rmf" | "eu_ai_act" | "gdpr",
+  "reportType": "executive_summary" | "detailed_technical" | "compliance_gap_analysis" | "evidence_inventory" | "risk_assessment" | "remediation_plan",
+  "format": "pdf" | "excel" | "html" | "json",
+  "includeEvidence": true,
+  "includeRecommendations": true,
+  "branding": {
+    "companyName": "Your Company",
+    "colors": {
+      "primary": "#337ab7",
+      "secondary": "#5bc0de"
+    }
+  }
+}
+```
+
+#### Evidence Management
+```bash
+GET  /api/compliance/evidence/stats              # Evidence collection statistics
+POST /api/compliance/evidence/schedule           # Schedule automatic collection
+DELETE /api/compliance/evidence/schedule/:framework # Stop scheduled collection
+POST /api/compliance/evidence/test               # Test evidence collection
+```
+
+#### Compliance Framework Management
+```bash
+GET /api/compliance/frameworks                   # Available frameworks and options
+GET /api/compliance/reports/stats                # Report generation statistics
+GET /api/compliance/reports/download/:reportId   # Download generated reports
+```
+
+#### **Supported Compliance Frameworks**
+
+##### **NIST AI Risk Management Framework (AI RMF)**
+- **AI-1.1**: AI governance structure and roles documentation
+- **AI-2.1**: AI risk assessment and management processes  
+- **AI-3.1**: AI system security testing and vulnerability assessment
+- **AI-4.1**: AI system monitoring and incident response
+
+##### **EU AI Act Compliance**
+- **AIA-9.1**: Risk management system for high-risk AI applications
+- **AIA-10.1**: Data governance and quality management processes
+- **AIA-11.1**: Record-keeping and transparency requirements
+- **AIA-12.1**: Accuracy, robustness and cybersecurity measures
+
+##### **GDPR Data Protection Compliance**
+- **GDPR-32**: Security of processing - technical and organisational measures
+- **GDPR-30**: Records of processing activities
+- **GDPR-35**: Data protection impact assessments
+- **GDPR-33**: Personal data breach notification procedures
+
+#### **Evidence Types Collected**
+- **Configuration Evidence**: System configurations, threat detection settings, compliance policies
+- **Audit Logs**: User activities, system events, security incidents with 7-year retention
+- **Scan Results**: Vulnerability assessments, security testing results, risk evaluations
+- **Policy Documents**: Compliance policies, procedures, governance frameworks
+- **Security Alerts**: Incident reports, threat detections, response actions
+- **Training Records**: Security and compliance training completion records
+- **Risk Assessments**: AI asset risk evaluations, impact analyses, mitigation strategies
+- **Data Flow Diagrams**: System architecture, data processing flows, privacy impact assessments
+
 ## Monitoring & Observability
 
 ### Application Monitoring

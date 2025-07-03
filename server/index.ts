@@ -10,6 +10,7 @@ import { securityRoutes } from './routes/security-routes';
 import { agenticRoutes } from './routes/agentic-routes';
 import { monitoringRoutes } from './routes/monitoring-routes';
 import { threatConfigRoutes } from './routes/threat-config-routes';
+import complianceRoutes from './routes/compliance-routes';
 
 const app = express();
 
@@ -106,6 +107,10 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/agentic', agenticRoutes);
+app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/threat-config', threatConfigRoutes);
+app.use('/api/compliance', complianceRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

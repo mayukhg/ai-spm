@@ -96,6 +96,23 @@ export const complianceAssessments = pgTable("compliance_assessments", {
   recommendations: text("recommendations"),
 });
 
+// Compliance policies for specific frameworks
+export const compliancePolicies = pgTable("compliance_policies", {
+  id: serial("id").primaryKey(),
+  frameworkId: integer("framework_id").references(() => complianceFrameworks.id).notNull(),
+  controlId: text("control_id").notNull(), // e.g., "AI-1.1", "GDPR-32"
+  controlName: text("control_name").notNull(),
+  description: text("description").notNull(),
+  requirements: jsonb("requirements").notNull(), // detailed requirements
+  implementationGuidance: text("implementation_guidance"),
+  evidenceRequirements: jsonb("evidence_requirements"), // types of evidence needed
+  complianceLevel: text("compliance_level").notNull().default("mandatory"), // mandatory, recommended, optional
+  category: text("category"), // governance, risk_management, security, etc.
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Governance policies
 export const governancePolicies = pgTable("governance_policies", {
   id: serial("id").primaryKey(),

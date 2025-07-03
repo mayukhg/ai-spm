@@ -694,5 +694,3 @@ class ContextValidator {
     };
   }
 }
-
-export { MCPSecurityGateway };
