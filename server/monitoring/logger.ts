@@ -463,4 +463,4 @@ export const requestLoggingMiddleware = (req: any, res: any, next: any) => {
   next();
 };
 
-export { SecurityEventType, LogCategory, LogMetadata };
+export { LogMetadata };

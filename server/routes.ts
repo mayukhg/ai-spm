@@ -12,6 +12,9 @@ import {
   insertComplianceAssessmentSchema,
   insertGovernancePolicySchema
 } from "@shared/schema";
+// Import adversarial detection routes
+import adversarialDetectionRoutes from './routes/adversarial-detection-routes';
+
 // Microservices integration - simplified for development
 interface MicroserviceRequest extends Request {
   correlationId?: string;
@@ -693,6 +696,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+
+  // Mount adversarial detection routes
+  app.use('/api/adversarial-detection', requireAuth, adversarialDetectionRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

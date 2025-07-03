@@ -750,6 +750,98 @@ aws cloudformation delete-stack --stack-name <your-stack-name> --region <aws_reg
 - Encrypted data storage for sensitive information
 - Regular security assessments and vulnerability scanning
 
+### 🚨 **Advanced Adversarial Attack Detection**
+Real-time protection against sophisticated AI/ML security threats with automated response capabilities:
+
+#### **Data Poisoning Detection Engine**
+- **Statistical Analysis**: Z-score and IQR outlier detection for poisoned training samples
+- **Distribution Monitoring**: Temporal shift detection comparing training vs validation data distributions
+- **Correlation Analysis**: Feature correlation patterns to identify suspicious data relationships
+- **Gradient Anomaly Detection**: Training gradient analysis to detect manipulation during model updates
+- **Ensemble Validation**: Cross-model consistency checks to identify dataset integrity issues
+
+#### **Model Evasion Attack Protection**
+- **Real-time Adversarial Detection**: Automated detection of FGSM, PGD, C&W, DeepFool attacks
+- **Input Preprocessing Defense**: Anomaly detection in model inputs before inference
+- **Confidence Analysis**: Prediction confidence scoring with ensemble disagreement detection
+- **Automated Input Blocking**: Instant blocking of malicious inputs with configurable thresholds
+- **Gradient Analysis**: Attack signature detection through gradient magnitude monitoring
+
+#### **Membership Inference Privacy Protection**
+- **Privacy Attack Detection**: Statistical analysis of confidence patterns indicating training data membership
+- **Shadow Model Defense**: Comparison techniques to detect membership inference attempts
+- **Overfitting Indicators**: Detection of model behavior suggesting privacy vulnerabilities
+- **Information Leakage Quantification**: Mutual information analysis for privacy risk assessment
+- **Differential Privacy Integration**: Configurable noise injection for privacy preservation
+
+#### **Attribute Inference Safeguards**
+- **Sensitive Attribute Protection**: Detection of attempts to infer protected characteristics (age, gender, income)
+- **Correlation Monitoring**: Analysis of prediction-attribute correlations indicating privacy leakage
+- **Auxiliary Model Detection**: Identification of attacks using external models for attribute inference
+- **Feature Importance Analysis**: Monitoring for sensitive attribute influence in model decisions
+- **Privacy Leakage Scoring**: Quantitative assessment of attribute inference vulnerability
+
+#### **Automated Response System**
+- **Real-time Threat Blocking**: Immediate blocking of malicious inputs with sub-second response times
+- **Asset Quarantine**: Automated isolation of compromised models and datasets
+- **Multi-channel Alerting**: Instant notifications via Slack, email, PagerDuty, SMS, and webhooks
+- **Escalation Policies**: Configurable incident response workflows with severity-based escalation
+- **Audit Trail**: Comprehensive logging of all detection events and response actions for compliance
+
+### **API Endpoints for Adversarial Detection**
+
+#### Data Poisoning Detection
+```bash
+POST /api/adversarial-detection/data-poisoning/analyze
+{
+  "datasetId": "dataset_123",
+  "samples": [{ "id": "sample_1", "features": [1.2, 3.4, ...], "label": "normal" }],
+  "modelPredictions": [{ "modelId": "model_1", "predictions": [...] }]
+}
+```
+
+#### Model Evasion Detection
+```bash
+POST /api/adversarial-detection/model-evasion/analyze
+{
+  "inputSample": { "id": "input_1", "features": [1.2, 3.4, ...] },
+  "predictions": [{ "modelId": "model_1", "prediction": "normal", "confidence": 0.95 }],
+  "baselineInput": { "id": "baseline_1", "features": [1.0, 3.0, ...] }
+}
+```
+
+#### Membership Inference Detection
+```bash
+POST /api/adversarial-detection/membership-inference/analyze
+{
+  "queryId": "query_123",
+  "modelId": "model_1",
+  "samples": [{ "id": "sample_1", "confidence": 0.95, "loss": 0.05 }],
+  "shadowPredictions": [{ "modelId": "shadow_1", "membershipScore": 0.8 }]
+}
+```
+
+#### Attribute Inference Detection
+```bash
+POST /api/adversarial-detection/attribute-inference/analyze
+{
+  "queryId": "query_123", 
+  "modelId": "model_1",
+  "samples": [{ "prediction": "positive", "knownAttributes": { "age": 30 } }],
+  "targetAttributes": ["age", "gender", "income"]
+}
+```
+
+#### Management & Statistics
+```bash
+GET /api/adversarial-detection/stats              # Detection statistics
+GET /api/adversarial-detection/quarantine         # Quarantined assets
+POST /api/adversarial-detection/quarantine/release # Release from quarantine
+GET /api/adversarial-detection/incidents          # Active incidents
+PUT /api/adversarial-detection/config             # Update response configuration
+POST /api/adversarial-detection/test              # Test with sample data
+```
+
 ## Monitoring & Observability
 
 ### Application Monitoring
