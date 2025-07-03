@@ -25,6 +25,13 @@ A comprehensive enterprise-grade security solution designed to manage and monito
 - **ML Pipeline Security Scanning**: Automated vulnerability assessment of ML workflows
 - **AI Explainability Tools**: LIME, SHAP integration for model interpretability and compliance
 
+### Real-Time Data Quality Monitoring
+- **Comprehensive Quality Assessment**: Automated monitoring of completeness, accuracy, consistency, validity, uniqueness, and freshness
+- **Data Drift Detection**: Statistical analysis using Kolmogorov-Smirnov, Chi-square, and Wasserstein distance tests
+- **Advanced Anomaly Detection**: Ensemble methods combining Isolation Forest, LOF, DBSCAN, and statistical outlier detection
+- **Real-Time Alerting**: Configurable thresholds with multi-channel notifications for critical data integrity issues
+- **Automated Quality Scoring**: Weighted quality metrics with trend analysis and predictive insights
+
 ### Data Privacy & Governance
 - **Data Lineage Tracking**: Complete visibility into AI workflow data dependencies
 - **Automated PII Detection**: Advanced classification with confidence scoring
@@ -1191,6 +1198,200 @@ DEBUG=wiz:* npm run dev
 curl -X POST "http://localhost:5000/api/integrations/wiz/sync" \
   -H "Content-Type: application/json" \
   -d '{"debug": true}'
+```
+
+### 📊 **Real-Time Data Quality Monitoring API**
+
+Comprehensive data quality monitoring with advanced anomaly detection and drift analysis for AI/ML datasets:
+
+#### **Data Quality Monitoring**
+```bash
+# Monitor dataset quality with comprehensive metrics
+curl -X POST http://localhost:3000/api/data-quality/monitor \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assetId": 123,
+    "datasetName": "training_data",
+    "currentData": [...],
+    "referenceData": [...],
+    "environment": "training"
+  }'
+```
+
+#### **Generate Quality Report**
+```bash
+# Generate comprehensive quality report
+curl -X GET "http://localhost:3000/api/data-quality/report?assetId=123&timeRange=24h"
+```
+
+#### **Anomaly Detection**
+```bash
+# Detect anomalies in dataset using ensemble methods
+curl -X POST http://localhost:3000/api/data-quality/anomalies/detect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assetId": 123,
+    "datasetName": "inference_data",
+    "data": [...],
+    "environment": "inference"
+  }'
+```
+
+#### **Data Drift Detection**
+```bash
+# Detect data drift between datasets
+curl -X POST http://localhost:3000/api/data-quality/drift/detect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assetId": 123,
+    "referenceData": [...],
+    "currentData": [...],
+    "environment": "production"
+  }'
+```
+
+#### **Quality Baselines**
+```bash
+# Create quality baseline for reference
+curl -X POST http://localhost:3000/api/data-quality/baselines \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assetId": 123,
+    "datasetName": "training_baseline",
+    "baselineMetrics": {
+      "completeness": 0.95,
+      "accuracy": 0.92,
+      "consistency": 0.88
+    },
+    "environment": "training"
+  }'
+```
+
+#### **Validation Rules**
+```bash
+# Configure custom validation rules
+curl -X POST http://localhost:3000/api/data-quality/validation-rules \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assetId": 123,
+    "ruleName": "age_range_validation",
+    "ruleType": "range",
+    "field": "age",
+    "parameters": {"min": 18, "max": 100}
+  }'
+```
+
+#### **Monitoring Configuration**
+```bash
+# Update monitoring configuration
+curl -X PUT http://localhost:3000/api/data-quality/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enableRealTimeMonitoring": true,
+    "monitoringInterval": 15,
+    "enableDriftDetection": true,
+    "enableAnomalyDetection": true,
+    "alertThresholds": {
+      "qualityScoreThreshold": 0.8,
+      "driftThreshold": 0.3,
+      "anomalyRateThreshold": 0.05
+    }
+  }'
+```
+
+#### **Quality Metrics**
+```bash
+# Get quality metrics for asset
+curl -X GET "http://localhost:3000/api/data-quality/metrics?assetId=123&timeRange=7d"
+```
+
+#### **Start/Stop Monitoring**
+```bash
+# Start automated monitoring
+curl -X POST http://localhost:3000/api/data-quality/monitoring/start
+
+# Stop automated monitoring
+curl -X POST http://localhost:3000/api/data-quality/monitoring/stop
+
+# Get monitoring status
+curl -X GET http://localhost:3000/api/data-quality/monitoring/status
+```
+
+#### **Data Quality Response Examples**
+
+**Quality Report Response:**
+```json
+{
+  "assetId": 123,
+  "datasetName": "training_data",
+  "generatedAt": "2024-01-15T10:30:00Z",
+  "qualityOverview": {
+    "overallScore": 0.85,
+    "status": "good",
+    "totalRecords": 10000,
+    "validRecords": 8500,
+    "qualityTrend": "stable"
+  },
+  "qualityMetrics": {
+    "completeness": 0.92,
+    "accuracy": 0.88,
+    "consistency": 0.85,
+    "validity": 0.90,
+    "uniqueness": 0.95,
+    "freshness": 0.80
+  },
+  "driftAnalysis": {
+    "overallDriftScore": 0.15,
+    "driftStatus": "stable",
+    "driftedFeatures": 2,
+    "totalFeatures": 15,
+    "recommendations": [
+      "Monitor feature 'income' for continued drift",
+      "Consider retraining if drift persists"
+    ]
+  },
+  "anomalyAnalysis": {
+    "totalAnomalies": 45,
+    "anomalyRate": 0.0045,
+    "severityDistribution": {
+      "low": 25,
+      "medium": 15,
+      "high": 4,
+      "critical": 1
+    },
+    "dominantAnomalyTypes": ["statistical_outlier", "pattern_anomaly"]
+  }
+}
+```
+
+**Anomaly Detection Response:**
+```json
+{
+  "datasetName": "inference_data",
+  "assetId": 123,
+  "totalRecords": 1000,
+  "anomalousRecords": 12,
+  "anomalyPercentage": 1.2,
+  "detectionResults": [
+    {
+      "recordId": "record_789",
+      "anomalyScore": 0.85,
+      "confidence": 0.92,
+      "anomalyType": "statistical_outlier",
+      "detectionMethod": "isolation_forest",
+      "affectedFeatures": ["age", "income"],
+      "severity": "high"
+    }
+  ],
+  "alerts": [
+    {
+      "alertType": "high_anomaly_rate",
+      "severity": "medium",
+      "title": "Elevated Anomaly Rate Detected",
+      "description": "Anomaly rate of 1.2% exceeds threshold of 1.0%"
+    }
+  ]
+}
 ```
 
 ### Code Quality

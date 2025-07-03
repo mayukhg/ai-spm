@@ -14,6 +14,8 @@ import {
 } from "@shared/schema";
 // Import adversarial detection routes
 import adversarialDetectionRoutes from './routes/adversarial-detection-routes';
+// Import data quality monitoring routes
+import { dataQualityRoutes } from './data-quality/data-quality-routes';
 
 // Microservices integration - simplified for development
 interface MicroserviceRequest extends Request {
@@ -699,6 +701,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount adversarial detection routes
   app.use('/api/adversarial-detection', requireAuth, adversarialDetectionRoutes);
+
+  // Mount data quality monitoring routes
+  app.use('/api/data-quality', requireAuth, dataQualityRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
