@@ -834,7 +834,7 @@ Resources:
       StorageType: gp2            # General Purpose SSD for balanced performance
       BackupRetentionPeriod: 7    # 7-day backup retention for point-in-time recovery
       DeleteAutomatedBackups: true # Clean up backups when instance is deleted
-      DeletionPolicy: Snapshot # Or 'Delete' for non-prod. 'Snapshot' requires a final snapshot name.
+      DeletionPolicy: Delete # Or 'Delete' for non-prod. 'Snapshot' requires a final snapshot name.
       # FinalDBSnapshotIdentifier: !Sub ${AWS::StackName}-final-snapshot-${AWS::Region} # Required if DeletionPolicy is Snapshot
       CopyTagsToSnapshot: true
       Tags:
