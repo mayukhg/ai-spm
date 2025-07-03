@@ -1,13 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Enhanced CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
-  with advanced security features including OAuth 2.0/SAML authentication, real-time security monitoring
-  with SIEM integration, AI/ML security controls, and automated privacy governance. This template 
-  provisions a comprehensive security infrastructure with VPC, encrypted RDS database, ECS Fargate 
-  services for enhanced Node.js API Gateway and specialized Python microservices, S3 bucket with 
-  security controls, CloudFront distribution, and integrated security services like CloudTrail, 
-  GuardDuty, and Security Hub. The infrastructure supports Istio service mesh deployment with 
-  zero-trust architecture, automatic mTLS, and comprehensive observability.
+  Comprehensive CloudFormation template to deploy the AI Security Posture Management (AI-SPM) Platform
+  with enterprise-grade monitoring, logging, and alerting capabilities. This template provisions advanced 
+  security features including OAuth 2.0/SAML authentication, real-time security monitoring with SIEM 
+  integration, AI/ML security controls, automated privacy governance, and a comprehensive observability 
+  stack. Infrastructure includes VPC with encrypted RDS database, ECS Fargate services for the enhanced 
+  Node.js API Gateway and specialized Python microservices, S3 bucket with security controls, CloudFront 
+  distribution, integrated security services (CloudTrail, GuardDuty, Security Hub), structured logging 
+  with Winston, Prometheus metrics collection, multi-channel alerting (Slack, PagerDuty, email, Teams), 
+  KMS-encrypted log storage, and support for Istio service mesh deployment with zero-trust architecture, 
+  automatic mTLS, and comprehensive observability. The platform provides enterprise-grade compliance 
+  with 7-year audit trail retention and real-time threat detection monitoring.
 
 Parameters:
   # Environment Configuration
@@ -97,6 +100,89 @@ Parameters:
     Default: ""
     NoEcho: true
 
+  # Monitoring and Alerting Configuration
+  SlackWebhookUrl:
+    Type: String
+    Description: (Optional) Slack webhook URL for alert notifications
+    Default: ""
+    NoEcho: true
+
+  PagerDutyIntegrationKey:
+    Type: String
+    Description: (Optional) PagerDuty integration key for incident management
+    Default: ""
+    NoEcho: true
+
+  SmtpHost:
+    Type: String
+    Description: (Optional) SMTP server host for email notifications
+    Default: ""
+
+  SmtpPort:
+    Type: Number
+    Description: (Optional) SMTP server port
+    Default: 587
+
+  SmtpUser:
+    Type: String
+    Description: (Optional) SMTP username for email authentication
+    Default: ""
+
+  SmtpPassword:
+    Type: String
+    Description: (Optional) SMTP password for email authentication
+    Default: ""
+    NoEcho: true
+
+  TeamsWebhookUrl:
+    Type: String
+    Description: (Optional) Microsoft Teams webhook URL for notifications
+    Default: ""
+    NoEcho: true
+
+  # Logging Configuration
+  LogLevel:
+    Type: String
+    Default: info
+    AllowedValues: [debug, info, warn, error]
+    Description: Application logging level
+
+  LogsRetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    MaxValue: 365
+    Description: Number of days to retain application logs
+
+  AuditRetentionYears:
+    Type: Number
+    Default: 7
+    MinValue: 1
+    MaxValue: 10
+    Description: Number of years to retain audit logs for compliance
+
+  # Performance Monitoring
+  HealthCheckInterval:
+    Type: Number
+    Default: 30000
+    MinValue: 10000
+    MaxValue: 300000
+    Description: Health check interval in milliseconds
+
+  MetricsCollectionInterval:
+    Type: Number
+    Default: 15000
+    MinValue: 5000
+    MaxValue: 60000
+    Description: Metrics collection interval in milliseconds
+
+  AlertEscalationTimeout:
+    Type: Number
+    Default: 300000
+    MinValue: 60000
+    MaxValue: 1800000
+    Description: Alert escalation timeout in milliseconds
+
   # Container Configuration
   NodeJSImageTag:
     Type: String
@@ -151,11 +237,6 @@ Parameters:
     AllowedValues: ['true', 'false']
     Description: Enable Jaeger distributed tracing
 
-  PythonImageTag:
-    Type: String
-    Description: Docker image tag for Python microservices (e.g., 'latest' or a specific version from ECR).
-    Default: "latest"
-
   APIGatewayDesiredCount:
     Type: Number
     Description: Desired number of tasks for the Node.js API Gateway service.
@@ -185,11 +266,6 @@ Parameters:
     Description: (Optional) Name of existing EKS cluster for service mesh deployment.
     Default: ""
 
-  SSLCertificateArn:
-    Type: String
-    Description: (Optional) ARN of the SSL certificate for CloudFront and ALB. If not provided, HTTP will be used (not recommended for production).
-    Default: ""
-
 Conditions:
   CreateWizClientIdSecret: !Not [!Equals [!Ref WizClientId, ""]]
   CreateWizClientSecretSecret: !Not [!Equals [!Ref WizClientSecret, ""]]
@@ -197,6 +273,18 @@ Conditions:
   DeployMicroservices: !Equals [!Ref EnableMicroservices, "true"]
   EnableServiceMesh: !Equals [!Ref ServiceMeshReady, "true"]
   HasExistingCluster: !Not [!Equals [!Ref KubernetesClusterName, ""]]
+  EnableCloudTrailService: !Equals [!Ref EnableCloudTrail, "true"]
+  EnableGuardDutyService: !Equals [!Ref EnableGuardDuty, "true"]
+  EnableSecurityHubService: !Equals [!Ref EnableSecurityHub, "true"]
+  EnablePrometheusService: !Equals [!Ref EnablePrometheus, "true"]
+  EnableJaegerService: !Equals [!Ref EnableJaeger, "true"]
+  HasSlackWebhook: !Not [!Equals [!Ref SlackWebhookUrl, ""]]
+  HasPagerDutyKey: !Not [!Equals [!Ref PagerDutyIntegrationKey, ""]]
+  HasSmtpConfig: !Not [!Equals [!Ref SmtpHost, ""]]
+  HasTeamsWebhook: !Not [!Equals [!Ref TeamsWebhookUrl, ""]]
+  HasOAuthConfig: !Not [!Equals [!Ref OAuthClientId, ""]]
+  HasSAMLConfig: !Not [!Equals [!Ref SAMLEntityId, ""]]
+  HasSplunkConfig: !Not [!Equals [!Ref SplunkEndpoint, ""]]
 
 Resources:
   VPC:
@@ -466,6 +554,104 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-WizClientSecret
 
+  # Monitoring and Alerting Secrets
+  SlackWebhookSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasSlackWebhook
+    Properties:
+      Name: !Sub ${AWS::StackName}/SLACK_WEBHOOK_URL
+      Description: "Slack webhook URL for AI-SPM alert notifications"
+      SecretString: !Ref SlackWebhookUrl
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SlackWebhook
+
+  PagerDutySecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasPagerDutyKey
+    Properties:
+      Name: !Sub ${AWS::StackName}/PAGERDUTY_INTEGRATION_KEY
+      Description: "PagerDuty integration key for AI-SPM incident management"
+      SecretString: !Ref PagerDutyIntegrationKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PagerDutyKey
+
+  SmtpPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasSmtpConfig
+    Properties:
+      Name: !Sub ${AWS::StackName}/SMTP_PASSWORD
+      Description: "SMTP password for AI-SPM email notifications"
+      SecretString: !Ref SmtpPassword
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SmtpPassword
+
+  TeamsWebhookSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasTeamsWebhook
+    Properties:
+      Name: !Sub ${AWS::StackName}/TEAMS_WEBHOOK_URL
+      Description: "Microsoft Teams webhook URL for AI-SPM notifications"
+      SecretString: !Ref TeamsWebhookUrl
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-TeamsWebhook
+
+  JWTSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/JWT_SECRET
+      Description: "JWT secret for AI-SPM token signing"
+      SecretString: !Ref JWTSecret
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-JWTSecret
+
+  APIKeySecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/API_KEY_SECRET
+      Description: "API key secret for AI-SPM service authentication"
+      SecretString: !Ref APIKeySecret
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-APIKeySecret
+
+  OAuthClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasOAuthConfig
+    Properties:
+      Name: !Sub ${AWS::StackName}/OAUTH_CLIENT_SECRET
+      Description: "OAuth 2.0 Client Secret for AI-SPM SSO integration"
+      SecretString: !Ref OAuthClientSecret
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-OAuthClientSecret
+
+  SAMLCertificateSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasSAMLConfig
+    Properties:
+      Name: !Sub ${AWS::StackName}/SAML_CERTIFICATE
+      Description: "SAML IdP Certificate for AI-SPM identity federation"
+      SecretString: !Ref SAMLCertificate
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SAMLCertificate
+
+  SplunkTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasSplunkConfig
+    Properties:
+      Name: !Sub ${AWS::StackName}/SPLUNK_TOKEN
+      Description: "Splunk HEC authentication token for AI-SPM SIEM integration"
+      SecretString: !Ref SplunkToken
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SplunkToken
+
   # RDS PostgreSQL Database
   AppServerSecurityGroup: # Defined first as RDSSecurityGroup refers to it
     Type: AWS::EC2::SecurityGroup
@@ -658,11 +844,64 @@ Resources:
               Value: !If [DeployMicroservices, !Sub "http://${WizIntegrationServiceDiscovery}.${AWS::StackName}-microservices.local:8003", ""]
             - Name: COMPLIANCE_ENGINE_URL
               Value: !If [DeployMicroservices, !Sub "http://${ComplianceEngineServiceDiscovery}.${AWS::StackName}-microservices.local:8004", ""]
+            # Monitoring and Logging Configuration
+            - Name: LOG_LEVEL
+              Value: !Ref LogLevel
+            - Name: LOGS_RETENTION_DAYS
+              Value: !Ref LogsRetentionDays
+            - Name: AUDIT_RETENTION_YEARS
+              Value: !Ref AuditRetentionYears
+            - Name: HEALTH_CHECK_INTERVAL
+              Value: !Ref HealthCheckInterval
+            - Name: METRICS_COLLECTION_INTERVAL
+              Value: !Ref MetricsCollectionInterval
+            - Name: ALERT_ESCALATION_TIMEOUT
+              Value: !Ref AlertEscalationTimeout
+            - Name: ENABLE_REQUEST_LOGGING
+              Value: "true"
+            - Name: ENABLE_PERFORMANCE_METRICS
+              Value: "true"
+            - Name: CORRELATION_ID_HEADER
+              Value: "x-correlation-id"
+            # SMTP Configuration
+            - Name: SMTP_HOST
+              Value: !If [HasSmtpConfig, !Ref SmtpHost, ""]
+            - Name: SMTP_PORT
+              Value: !If [HasSmtpConfig, !Ref SmtpPort, "587"]
+            - Name: SMTP_USER
+              Value: !If [HasSmtpConfig, !Ref SmtpUser, ""]
+            # OAuth Configuration
+            - Name: OAUTH_CLIENT_ID
+              Value: !If [HasOAuthConfig, !Ref OAuthClientId, ""]
+            # SAML Configuration
+            - Name: SAML_ENTITY_ID
+              Value: !If [HasSAMLConfig, !Ref SAMLEntityId, ""]
+            # SIEM Configuration
+            - Name: SPLUNK_ENDPOINT
+              Value: !If [HasSplunkConfig, !Ref SplunkEndpoint, ""]
           Secrets:
             - Name: PGPASSWORD
               ValueFrom: !Ref DBPasswordSecret
             - Name: SESSION_SECRET
               ValueFrom: !Ref SessionSecret
+            - Name: JWT_SECRET
+              ValueFrom: !Ref JWTSecretSecret
+            - Name: API_KEY_SECRET
+              ValueFrom: !Ref APIKeySecretSecret
+            - Name: SLACK_WEBHOOK_URL
+              ValueFrom: !If [HasSlackWebhook, !Ref SlackWebhookSecret, !Ref "AWS::NoValue"]
+            - Name: PAGERDUTY_INTEGRATION_KEY
+              ValueFrom: !If [HasPagerDutyKey, !Ref PagerDutySecret, !Ref "AWS::NoValue"]
+            - Name: SMTP_PASSWORD
+              ValueFrom: !If [HasSmtpConfig, !Ref SmtpPasswordSecret, !Ref "AWS::NoValue"]
+            - Name: TEAMS_WEBHOOK_URL
+              ValueFrom: !If [HasTeamsWebhook, !Ref TeamsWebhookSecret, !Ref "AWS::NoValue"]
+            - Name: OAUTH_CLIENT_SECRET
+              ValueFrom: !If [HasOAuthConfig, !Ref OAuthClientSecretSecret, !Ref "AWS::NoValue"]
+            - Name: SAML_CERTIFICATE
+              ValueFrom: !If [HasSAMLConfig, !Ref SAMLCertificateSecret, !Ref "AWS::NoValue"]
+            - Name: SPLUNK_TOKEN
+              ValueFrom: !If [HasSplunkConfig, !Ref SplunkTokenSecret, !Ref "AWS::NoValue"]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -815,6 +1054,105 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-MicroservicesLogGroup
+
+  # Enhanced Monitoring Log Groups
+  SecurityLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ai-spm/${AWS::StackName}/security
+      RetentionInDays: !Ref LogsRetentionDays
+      KmsKeyId: !Ref LogEncryptionKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-SecurityLogGroup
+        - Key: LogType
+          Value: Security
+
+  AuditLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ai-spm/${AWS::StackName}/audit
+      RetentionInDays: 2555  # 7 years for compliance
+      KmsKeyId: !Ref LogEncryptionKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AuditLogGroup
+        - Key: LogType
+          Value: Audit
+        - Key: Compliance
+          Value: "true"
+
+  PerformanceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ai-spm/${AWS::StackName}/performance
+      RetentionInDays: !Ref LogsRetentionDays
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-PerformanceLogGroup
+        - Key: LogType
+          Value: Performance
+
+  AgenticLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ai-spm/${AWS::StackName}/agentic
+      RetentionInDays: !Ref LogsRetentionDays
+      KmsKeyId: !Ref LogEncryptionKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AgenticLogGroup
+        - Key: LogType
+          Value: Agentic
+
+  MonitoringLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ai-spm/${AWS::StackName}/monitoring
+      RetentionInDays: !Ref LogsRetentionDays
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-MonitoringLogGroup
+        - Key: LogType
+          Value: Monitoring
+
+  # KMS Key for Log Encryption
+  LogEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "KMS key for AI-SPM log encryption"
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: Allow CloudWatch Logs
+            Effect: Allow
+            Principal:
+              Service: !Sub "logs.${AWS::Region}.amazonaws.com"
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-LogEncryptionKey
+
+  LogEncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${AWS::StackName}-log-encryption"
+      TargetKeyId: !Ref LogEncryptionKey
 
   # ECS Service for API Gateway
   APIGatewayService:
@@ -1289,6 +1627,70 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ArchitectureType
 
+  # Monitoring and Logging Resources
+  LogEncryptionKeyId:
+    Description: "KMS Key ID for log encryption"
+    Value: !Ref LogEncryptionKey
+    Export:
+      Name: !Sub ${AWS::StackName}-LogEncryptionKey
+
+  SecurityLogGroupName:
+    Description: "CloudWatch Log Group for security events"
+    Value: !Ref SecurityLogGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-SecurityLogGroup
+
+  AuditLogGroupName:
+    Description: "CloudWatch Log Group for audit trails (7-year retention)"
+    Value: !Ref AuditLogGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-AuditLogGroup
+
+  PerformanceLogGroupName:
+    Description: "CloudWatch Log Group for performance metrics"
+    Value: !Ref PerformanceLogGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-PerformanceLogGroup
+
+  AgenticLogGroupName:
+    Description: "CloudWatch Log Group for agentic workflow events"
+    Value: !Ref AgenticLogGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-AgenticLogGroup
+
+  MonitoringConfigurationSummary:
+    Description: "Summary of monitoring and alerting configuration"
+    Value: !Sub
+      - |
+        Enterprise Monitoring & Alerting Configured:
+        
+        Logging Infrastructure:
+        - Security Events: ${SecurityLogGroup}
+        - Audit Trails: ${AuditLogGroup} (7-year retention)
+        - Performance Metrics: ${PerformanceLogGroup}
+        - Agentic Workflows: ${AgenticLogGroup}
+        - System Monitoring: ${MonitoringLogGroup}
+        
+        Alerting Channels:
+        ${SlackStatus}
+        ${PagerDutyStatus}
+        ${EmailStatus}
+        ${TeamsStatus}
+        
+        Configuration:
+        - Log Level: ${LogLevel}
+        - Health Check Interval: ${HealthCheckInterval}ms
+        - Metrics Collection: ${MetricsCollectionInterval}ms
+        - Alert Escalation: ${AlertEscalationTimeout}ms
+        
+        Encryption: All logs encrypted with KMS key ${LogEncryptionKey}
+      - SlackStatus: !If [HasSlackWebhook, "✓ Slack notifications enabled", "- Slack notifications: Not configured"]
+        PagerDutyStatus: !If [HasPagerDutyKey, "✓ PagerDuty integration enabled", "- PagerDuty integration: Not configured"]
+        EmailStatus: !If [HasSmtpConfig, "✓ Email notifications enabled", "- Email notifications: Not configured"]
+        TeamsStatus: !If [HasTeamsWebhook, "✓ Microsoft Teams notifications enabled", "- Teams notifications: Not configured"]
+    Export:
+      Name: !Sub ${AWS::StackName}-MonitoringConfiguration
+
   # Deployment Instructions
   DeploymentNotes:
     Description: "Important deployment information"
@@ -1298,12 +1700,18 @@ Outputs:
         
         Architecture: ${ArchType}
         Service Mesh: ${ServiceMeshStatus}
+        Monitoring: Enterprise-grade logging and alerting configured
         
         Next Steps:
         1. Build and push Node.js API Gateway image to: ${ECRRepositoryNodeJS}
         ${MicroserviceInstructions}
         2. Upload frontend assets to S3 bucket: ${S3FrontendBucket}
         3. Access application via CloudFront: https://${CloudFrontDistribution.DomainName}
+        
+        Monitoring Endpoints:
+        - Health Check: /api/monitoring/health
+        - Metrics: /api/monitoring/metrics (Prometheus format)
+        - Alerts: /api/monitoring/alerts
         
         ${ServiceMeshInstructions}
         
