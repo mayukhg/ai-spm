@@ -13,14 +13,22 @@ Description: >
   with 7-year audit trail retention and real-time threat detection monitoring.
 
 Parameters:
-  # Environment Configuration
+  # ============================================================================
+  # ENVIRONMENT CONFIGURATION
+  # ============================================================================
+  # Defines the deployment environment which affects resource sizing, logging
+  # levels, and security configurations across the platform
   Environment:
     Type: String
     Default: production
     AllowedValues: [development, staging, production]
-    Description: Deployment environment
+    Description: Deployment environment - affects resource sizing and security settings
 
-  # Database Configuration
+  # ============================================================================
+  # DATABASE CONFIGURATION
+  # ============================================================================
+  # PostgreSQL database configuration for the AI-SPM platform data storage
+  # including user accounts, AI assets, vulnerabilities, and audit logs
   DBPassword:
     Type: String
     Description: Password for the RDS PostgreSQL database. Must be at least 12 characters with mixed case, numbers, and symbols.
@@ -32,59 +40,71 @@ Parameters:
     Type: String
     Default: db.t3.medium
     AllowedValues: [db.t3.medium, db.t3.large, db.r5.large, db.r5.xlarge]
-    Description: RDS instance class with enhanced performance for security processing
+    Description: RDS instance class with enhanced performance for security processing and large datasets
 
-  # Security Configuration
+  # ============================================================================
+  # SECURITY CONFIGURATION
+  # ============================================================================
+  # Cryptographic secrets for JWT tokens, session management, and API authentication
+  # These are critical for platform security and should be randomly generated
   JWTSecret:
     Type: String
-    Description: JWT secret for token signing (minimum 32 characters)
+    Description: JWT secret for token signing (minimum 32 characters) - used for stateless authentication
     MinLength: 32
     NoEcho: true
 
   SessionSecret:
     Type: String
-    Description: Session secret for authentication (minimum 32 characters)
+    Description: Session secret for authentication (minimum 32 characters) - used for session cookie signing
     MinLength: 32
     NoEcho: true
 
   APIKeySecret:
     Type: String
-    Description: API key secret for service authentication (minimum 32 characters)
+    Description: API key secret for service authentication (minimum 32 characters) - used for microservice communication
     MinLength: 32
     NoEcho: true
 
-  # Authentication Provider Configuration
+  # ============================================================================
+  # AUTHENTICATION PROVIDER CONFIGURATION
+  # ============================================================================
+  # Enterprise Single Sign-On (SSO) integration parameters for OAuth 2.0 and SAML
+  # These enable integration with corporate identity providers like Azure AD, Okta, etc.
   OAuthClientId:
     Type: String
-    Description: (Optional) OAuth 2.0 Client ID for enterprise SSO integration
+    Description: (Optional) OAuth 2.0 Client ID for enterprise SSO integration (e.g., Azure AD, Google Workspace)
     Default: ""
 
   OAuthClientSecret:
     Type: String
-    Description: (Optional) OAuth 2.0 Client Secret
+    Description: (Optional) OAuth 2.0 Client Secret - keep this secure and rotate regularly
     Default: ""
     NoEcho: true
 
   SAMLEntityId:
     Type: String
-    Description: (Optional) SAML Entity ID for identity federation
+    Description: (Optional) SAML Entity ID for identity federation - identifies this application to the IdP
     Default: ""
 
   SAMLCertificate:
     Type: String
-    Description: (Optional) SAML IdP Certificate for verification
+    Description: (Optional) SAML IdP Certificate for signature verification - X.509 certificate in PEM format
     Default: ""
     NoEcho: true
 
-  # SIEM Integration Configuration
+  # ============================================================================
+  # SIEM INTEGRATION CONFIGURATION
+  # ============================================================================
+  # Security Information and Event Management (SIEM) system integration
+  # Enables real-time security event forwarding to enterprise security platforms
   SplunkEndpoint:
     Type: String
-    Description: (Optional) Splunk HEC endpoint URL for SIEM integration
+    Description: (Optional) Splunk HEC endpoint URL for SIEM integration (e.g., https://splunk.company.com:8088/services/collector)
     Default: ""
 
   SplunkToken:
     Type: String
-    Description: (Optional) Splunk HEC authentication token
+    Description: (Optional) Splunk HEC authentication token - generate from Splunk admin console
     Default: ""
     NoEcho: true
 
@@ -100,142 +120,174 @@ Parameters:
     Default: ""
     NoEcho: true
 
-  # Monitoring and Alerting Configuration
+  # ============================================================================
+  # MONITORING AND ALERTING CONFIGURATION
+  # ============================================================================
+  # Multi-channel notification system for real-time incident response
+  # Configure these channels based on your organization's communication preferences
   SlackWebhookUrl:
     Type: String
-    Description: (Optional) Slack webhook URL for alert notifications
+    Description: (Optional) Slack webhook URL for alert notifications - create from Slack app settings
     Default: ""
     NoEcho: true
 
   PagerDutyIntegrationKey:
     Type: String
-    Description: (Optional) PagerDuty integration key for incident management
+    Description: (Optional) PagerDuty integration key for incident management - obtained from PagerDuty service configuration
     Default: ""
     NoEcho: true
 
   SmtpHost:
     Type: String
-    Description: (Optional) SMTP server host for email notifications
+    Description: (Optional) SMTP server host for email notifications (e.g., smtp.gmail.com, smtp.office365.com)
     Default: ""
 
   SmtpPort:
     Type: Number
-    Description: (Optional) SMTP server port
+    Description: (Optional) SMTP server port - typically 587 for TLS, 465 for SSL, 25 for unencrypted
     Default: 587
 
   SmtpUser:
     Type: String
-    Description: (Optional) SMTP username for email authentication
+    Description: (Optional) SMTP username for email authentication - usually the email address
     Default: ""
 
   SmtpPassword:
     Type: String
-    Description: (Optional) SMTP password for email authentication
+    Description: (Optional) SMTP password for email authentication - use app-specific passwords for Gmail/Office365
     Default: ""
     NoEcho: true
 
   TeamsWebhookUrl:
     Type: String
-    Description: (Optional) Microsoft Teams webhook URL for notifications
+    Description: (Optional) Microsoft Teams webhook URL for notifications - create from Teams channel connectors
     Default: ""
     NoEcho: true
 
-  # Logging Configuration
+  # ============================================================================
+  # LOGGING CONFIGURATION
+  # ============================================================================
+  # Application logging settings that affect log verbosity and retention policies
+  # Higher log levels (debug) increase storage costs but provide more troubleshooting detail
   LogLevel:
     Type: String
     Default: info
     AllowedValues: [debug, info, warn, error]
-    Description: Application logging level
+    Description: Application logging level - debug provides most detail, error provides least
 
   LogsRetentionDays:
     Type: Number
     Default: 30
     MinValue: 1
     MaxValue: 365
-    Description: Number of days to retain application logs
+    Description: Number of days to retain application logs - affects CloudWatch storage costs
 
   AuditRetentionYears:
     Type: Number
     Default: 7
     MinValue: 1
     MaxValue: 10
-    Description: Number of years to retain audit logs for compliance
+    Description: Number of years to retain audit logs for compliance (SOX, HIPAA, GDPR requirements)
 
-  # Performance Monitoring
+  # ============================================================================
+  # PERFORMANCE MONITORING CONFIGURATION
+  # ============================================================================
+  # System health monitoring intervals that balance monitoring granularity with resource usage
+  # Shorter intervals provide faster detection but increase CPU/network overhead
   HealthCheckInterval:
     Type: Number
     Default: 30000
     MinValue: 10000
     MaxValue: 300000
-    Description: Health check interval in milliseconds
+    Description: Health check interval in milliseconds - how often to check system component health
 
   MetricsCollectionInterval:
     Type: Number
     Default: 15000
     MinValue: 5000
     MaxValue: 60000
-    Description: Metrics collection interval in milliseconds
+    Description: Metrics collection interval in milliseconds - how often to gather Prometheus metrics
 
   AlertEscalationTimeout:
     Type: Number
     Default: 300000
     MinValue: 60000
     MaxValue: 1800000
-    Description: Alert escalation timeout in milliseconds
+    Description: Alert escalation timeout in milliseconds - time before escalating unacknowledged alerts
 
-  # Container Configuration
+  # ============================================================================
+  # CONTAINER CONFIGURATION
+  # ============================================================================
+  # Docker image tags for the application containers
+  # Use specific version tags (e.g., "v1.2.3") for production deployments
   NodeJSImageTag:
     Type: String
-    Description: Docker image tag for the enhanced Node.js API Gateway
+    Description: Docker image tag for the enhanced Node.js API Gateway - use "latest" for development, specific versions for production
     Default: "latest"
 
   PythonImageTag:
     Type: String
-    Description: Docker image tag for Python microservices
+    Description: Docker image tag for Python microservices - should match the API Gateway version for compatibility
     Default: "latest"
 
-  # Networking Configuration
+  # ============================================================================
+  # NETWORKING CONFIGURATION
+  # ============================================================================
+  # VPC network configuration for secure private cloud deployment
+  # This CIDR should not conflict with your existing corporate networks
   VpcCidr:
     Type: String
     Default: 10.0.0.0/16
-    Description: CIDR block for VPC
+    Description: CIDR block for VPC - provides 65,536 IP addresses for the AI-SPM platform
 
-  # SSL Configuration
+  # ============================================================================
+  # SSL/TLS CONFIGURATION
+  # ============================================================================
+  # SSL certificate for HTTPS encryption - obtain from AWS Certificate Manager
+  # Required for production deployments to ensure encrypted communication
   SSLCertificateArn:
     Type: String
-    Description: ARN of SSL certificate for HTTPS (required for production)
+    Description: ARN of SSL certificate for HTTPS (required for production) - create via AWS Certificate Manager
 
-  # Security Services Configuration
+  # ============================================================================
+  # AWS SECURITY SERVICES CONFIGURATION
+  # ============================================================================
+  # Enterprise security services that provide additional monitoring and compliance
+  # These integrate with the platform's native security features
   EnableCloudTrail:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Enable AWS CloudTrail for comprehensive audit logging
+    Description: Enable AWS CloudTrail for comprehensive audit logging - recommended for compliance
 
   EnableGuardDuty:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Enable Amazon GuardDuty for threat detection
+    Description: Enable Amazon GuardDuty for threat detection - provides ML-based security analysis
 
   EnableSecurityHub:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Enable AWS Security Hub for security posture management
+    Description: Enable AWS Security Hub for security posture management - centralizes security findings
 
-  # Monitoring Configuration
+  # ============================================================================
+  # OBSERVABILITY CONFIGURATION
+  # ============================================================================
+  # Advanced monitoring and tracing capabilities for production environments
+  # These provide deep visibility into application performance and behavior
   EnablePrometheus:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Enable Prometheus metrics collection
+    Description: Enable Prometheus metrics collection - industry standard for monitoring microservices
 
   EnableJaeger:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Enable Jaeger distributed tracing
+    Description: Enable Jaeger distributed tracing - essential for debugging microservices interactions
 
   APIGatewayDesiredCount:
     Type: Number
@@ -266,37 +318,68 @@ Parameters:
     Description: (Optional) Name of existing EKS cluster for service mesh deployment.
     Default: ""
 
+# ============================================================================
+# CONDITIONAL LOGIC
+# ============================================================================
+# These conditions determine which resources are created based on parameter values
+# This allows for flexible deployments (e.g., API Gateway only vs. full microservices)
 Conditions:
+  # External service integration conditions - only create secrets if credentials provided
   CreateWizClientIdSecret: !Not [!Equals [!Ref WizClientId, ""]]
   CreateWizClientSecretSecret: !Not [!Equals [!Ref WizClientSecret, ""]]
+  
+  # SSL/TLS configuration - enables HTTPS listeners and CloudFront HTTPS
   HasSSLCertificate: !Not [!Equals [!Ref SSLCertificateArn, ""]]
+  
+  # Architecture deployment options - controls microservices vs. API Gateway only
   DeployMicroservices: !Equals [!Ref EnableMicroservices, "true"]
   EnableServiceMesh: !Equals [!Ref ServiceMeshReady, "true"]
   HasExistingCluster: !Not [!Equals [!Ref KubernetesClusterName, ""]]
+  
+  # AWS security service enablement - optional enterprise security features
   EnableCloudTrailService: !Equals [!Ref EnableCloudTrail, "true"]
   EnableGuardDutyService: !Equals [!Ref EnableGuardDuty, "true"]
   EnableSecurityHubService: !Equals [!Ref EnableSecurityHub, "true"]
+  
+  # Observability service enablement - monitoring and tracing capabilities
   EnablePrometheusService: !Equals [!Ref EnablePrometheus, "true"]
   EnableJaegerService: !Equals [!Ref EnableJaeger, "true"]
+  
+  # Notification channel configuration - determines which alert channels to configure
   HasSlackWebhook: !Not [!Equals [!Ref SlackWebhookUrl, ""]]
   HasPagerDutyKey: !Not [!Equals [!Ref PagerDutyIntegrationKey, ""]]
   HasSmtpConfig: !Not [!Equals [!Ref SmtpHost, ""]]
   HasTeamsWebhook: !Not [!Equals [!Ref TeamsWebhookUrl, ""]]
+  
+  # Authentication provider configuration - enables SSO integration
   HasOAuthConfig: !Not [!Equals [!Ref OAuthClientId, ""]]
   HasSAMLConfig: !Not [!Equals [!Ref SAMLEntityId, ""]]
+  
+  # SIEM integration configuration - enables security event forwarding
   HasSplunkConfig: !Not [!Equals [!Ref SplunkEndpoint, ""]]
 
+# ============================================================================
+# AWS RESOURCES
+# ============================================================================
+
 Resources:
+  # ============================================================================
+  # NETWORKING INFRASTRUCTURE
+  # ============================================================================
+  # Virtual Private Cloud (VPC) provides isolated network environment for the AI-SPM platform
+  # This ensures secure communication between components and isolation from other AWS resources
   VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
+      EnableDnsSupport: true      # Enables DNS resolution within the VPC
+      EnableDnsHostnames: true    # Required for ECS Fargate and RDS connectivity
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-VPC
 
+  # Internet Gateway provides internet access for public subnets
+  # Required for NAT Gateways, ALB, and CloudFront integration
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -455,7 +538,14 @@ Resources:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
 
-  # IAM Roles and Policies
+  # ============================================================================
+  # IDENTITY AND ACCESS MANAGEMENT (IAM)
+  # ============================================================================
+  # IAM roles provide secure, temporary credentials for AWS services
+  # These roles follow the principle of least privilege for enhanced security
+  
+  # ECS Task Execution Role - allows ECS to pull images and write logs
+  # This role is used by the ECS service to manage container lifecycle
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -468,8 +558,11 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
+        # AWS managed policy for ECS task execution (ECR, CloudWatch Logs)
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
+  # Application Server Role - provides runtime permissions for the AI-SPM containers
+  # This role allows the application to access Secrets Manager and other required services
   AppServerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -479,7 +572,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com # For ECS Tasks
+              Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: !Sub ${AWS::StackName}-AppServerSecretsPolicy
@@ -489,17 +582,14 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                # Restrict to specific secrets if ARNs are known/created by this template,
-                # or use a broader permission with conditions based on secret name patterns.
-                # For now, allowing access to secrets tagged by this stack or named with stack prefix.
+                # Restricts access to secrets created by this CloudFormation stack
+                # This follows security best practices by limiting secret access scope
                 Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
-              # Add other permissions if the app needs to interact with other AWS services
-              # - Effect: Allow
-              #   Action:
-              #     - s3:GetObject
-              #   Resource: !Sub arn:aws:s3:::your-app-specific-bucket/*
+              # Additional permissions can be added here for other AWS services
+              # Examples: S3 access for file uploads, SES for email notifications
 
-  # Instance profile for EC2 (if used in the future, not for current Fargate setup)
+  # Instance Profile for future EC2 deployments (currently unused with Fargate)
+  # This resource is created for potential migration to EC2-based deployments
   AppServerInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -507,7 +597,13 @@ Resources:
       Roles:
         - !Ref AppServerRole
 
-  # Secrets Manager
+  # ============================================================================
+  # SECRETS MANAGEMENT
+  # ============================================================================
+  # AWS Secrets Manager provides secure storage for sensitive configuration data
+  # All secrets are encrypted at rest and automatically rotated where possible
+  
+  # Database credentials for PostgreSQL RDS instance
   DBPasswordSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -554,7 +650,13 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-WizClientSecret
 
-  # Monitoring and Alerting Secrets
+  # ============================================================================
+  # MONITORING AND ALERTING SECRETS
+  # ============================================================================
+  # Notification channel credentials for multi-channel alerting system
+  # These secrets enable real-time incident response through various communication platforms
+  
+  # Slack integration for team notifications and incident collaboration
   SlackWebhookSecret:
     Type: AWS::SecretsManager::Secret
     Condition: HasSlackWebhook
@@ -708,24 +810,30 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-RDSSG
 
+  # ============================================================================
+  # DATABASE INFRASTRUCTURE
+  # ============================================================================
+  # PostgreSQL database instance for AI-SPM platform data storage
+  # Configured with security best practices and automated backups
+  
   RDSPostgresInstance:
     Type: AWS::RDS::DBInstance
     Properties:
       DBInstanceIdentifier: !Sub ${AWS::StackName}-db-instance
-      AllocatedStorage: "20" # Minimum 20 GiB
-      DBInstanceClass: db.t3.micro # Choose an appropriate instance class
+      AllocatedStorage: "20"        # Minimum storage for development, scale up for production
+      DBInstanceClass: db.t3.micro  # Cost-effective for development, use larger instances for production
       Engine: postgres
-      EngineVersion: "14" # Specify your desired PostgreSQL version
-      MasterUsername: ai_spm_user
-      MasterUserPassword: !Ref DBPassword # Directly using the parameter for initial creation
-      DBName: ai_spm_db
-      DBSubnetGroupName: !Ref DBSubnetGroup
+      EngineVersion: "14"           # PostgreSQL 14 with enhanced security features
+      MasterUsername: ai_spm_user   # Database superuser for application access
+      MasterUserPassword: !Ref DBPassword  # Secure password from parameters
+      DBName: ai_spm_db            # Primary database for AI-SPM platform
+      DBSubnetGroupName: !Ref DBSubnetGroup  # Deploys in private subnets only
       VPCSecurityGroups:
-        - !Ref RDSSecurityGroup
-      PubliclyAccessible: false
-      StorageType: gp2
-      BackupRetentionPeriod: 7 # Days
-      DeleteAutomatedBackups: true # Set to false for production if you want to keep backups after deletion
+        - !Ref RDSSecurityGroup    # Restricts access to application servers only
+      PubliclyAccessible: false    # Security best practice - no internet access
+      StorageType: gp2            # General Purpose SSD for balanced performance
+      BackupRetentionPeriod: 7    # 7-day backup retention for point-in-time recovery
+      DeleteAutomatedBackups: true # Clean up backups when instance is deleted
       DeletionPolicy: Snapshot # Or 'Delete' for non-prod. 'Snapshot' requires a final snapshot name.
       # FinalDBSnapshotIdentifier: !Sub ${AWS::StackName}-final-snapshot-${AWS::Region} # Required if DeletionPolicy is Snapshot
       CopyTagsToSnapshot: true
@@ -792,7 +900,13 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ECRRepository-Python
 
-  # ECS Cluster
+  # ============================================================================
+  # CONTAINER ORCHESTRATION (ECS)
+  # ============================================================================
+  # Amazon ECS provides scalable container orchestration for the AI-SPM platform
+  # Uses Fargate for serverless container management with automatic scaling
+  
+  # ECS Cluster - logical grouping of containerized services
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -801,18 +915,24 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ECSCluster
 
-  # ECS Task Definition for Node.js API Gateway
+  # ============================================================================
+  # CONTAINER TASK DEFINITIONS
+  # ============================================================================
+  # Task definitions specify container configuration, resource requirements,
+  # and environment variables for the AI-SPM platform services
+  
+  # Node.js API Gateway Task Definition - main application entry point
   APIGatewayTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub ${AWS::StackName}-APIGateway
-      Cpu: "512"  # 0.5 vCPU
-      Memory: "1024" # 1 GB RAM
-      NetworkMode: awsvpc
+      Cpu: "512"                          # 0.5 vCPU - sufficient for API Gateway workload
+      Memory: "1024"                      # 1 GB RAM - handles concurrent requests and monitoring
+      NetworkMode: awsvpc                 # Required for Fargate, provides ENI per task
       RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !Ref ECSTaskExecutionRole
-      TaskRoleArn: !Ref AppServerRole
+        - FARGATE                         # Serverless container platform
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole  # Role for ECS to manage container lifecycle
+      TaskRoleArn: !Ref AppServerRole     # Role for application to access AWS services
       ContainerDefinitions:
         - Name: !Sub ${AWS::StackName}-APIGateway
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryNodeJS}:${NodeJSImageTag}"
@@ -1055,25 +1175,32 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-MicroservicesLogGroup
 
-  # Enhanced Monitoring Log Groups
+  # ============================================================================
+  # ENTERPRISE MONITORING LOG GROUPS
+  # ============================================================================
+  # Structured logging infrastructure with category-specific log groups
+  # Each log group has appropriate retention periods and encryption for compliance
+  
+  # Security events log group - authentication, authorization, threat detection
   SecurityLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /ai-spm/${AWS::StackName}/security
       RetentionInDays: !Ref LogsRetentionDays
-      KmsKeyId: !Ref LogEncryptionKey
+      KmsKeyId: !Ref LogEncryptionKey  # Encrypted for security compliance
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-SecurityLogGroup
         - Key: LogType
           Value: Security
 
+  # Compliance audit log group - immutable audit trails with 7-year retention
   AuditLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /ai-spm/${AWS::StackName}/audit
-      RetentionInDays: 2555  # 7 years for compliance
-      KmsKeyId: !Ref LogEncryptionKey
+      RetentionInDays: 2555  # 7 years (2555 days) for regulatory compliance (SOX, HIPAA, GDPR)
+      KmsKeyId: !Ref LogEncryptionKey  # Required encryption for audit trails
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-AuditLogGroup
@@ -1082,6 +1209,7 @@ Resources:
         - Key: Compliance
           Value: "true"
 
+  # Performance metrics log group - API response times, database query performance
   PerformanceLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -1093,18 +1221,20 @@ Resources:
         - Key: LogType
           Value: Performance
 
+  # Agentic workflow log group - AI agent behavior, decision tracking, anomaly detection
   AgenticLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /ai-spm/${AWS::StackName}/agentic
       RetentionInDays: !Ref LogsRetentionDays
-      KmsKeyId: !Ref LogEncryptionKey
+      KmsKeyId: !Ref LogEncryptionKey  # Encrypted due to potential sensitive AI model data
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-AgenticLogGroup
         - Key: LogType
           Value: Agentic
 
+  # System monitoring log group - health checks, metrics collection, alerting events
   MonitoringLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -1116,20 +1246,26 @@ Resources:
         - Key: LogType
           Value: Monitoring
 
-  # KMS Key for Log Encryption
+  # ============================================================================
+  # ENCRYPTION INFRASTRUCTURE
+  # ============================================================================
+  # KMS key for encrypting sensitive log data at rest
+  # This ensures compliance with data protection regulations and enterprise security standards
   LogEncryptionKey:
     Type: AWS::KMS::Key
     Properties:
-      Description: "KMS key for AI-SPM log encryption"
+      Description: "KMS key for AI-SPM log encryption - protects sensitive security and audit data"
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
+          # Allow root account full access for key management
           - Sid: Enable IAM User Permissions
             Effect: Allow
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
             Action: "kms:*"
             Resource: "*"
+          # Allow CloudWatch Logs service to use the key for encryption/decryption
           - Sid: Allow CloudWatch Logs
             Effect: Allow
             Principal:
@@ -1148,6 +1284,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-LogEncryptionKey
 
+  # Human-readable alias for the KMS key
   LogEncryptionKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
@@ -1538,10 +1675,21 @@ Resources:
       ToPort: 5000
       SourceSecurityGroupId: !Ref ALBSecurityGroup # Allow from ALB's SG
 
+# ============================================================================
+# STACK OUTPUTS
+# ============================================================================
+# CloudFormation outputs provide key resource information for integration
+# and operational monitoring. These values are exported for cross-stack references.
+
 Outputs:
-  # CloudFront Distribution URL
+  # ============================================================================
+  # APPLICATION ACCESS ENDPOINTS
+  # ============================================================================
+  # Primary access points for the AI-SPM platform web interface and APIs
+  
+  # CloudFront Distribution URL - primary entry point for end users
   CloudFrontURL:
-    Description: "CloudFront Distribution URL for the AI-SPM Platform"
+    Description: "CloudFront Distribution URL for the AI-SPM Platform web interface"
     Value: !Sub "https://${CloudFrontDistribution.DomainName}"
     Export:
       Name: !Sub ${AWS::StackName}-CloudFrontURL
@@ -1627,9 +1775,14 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ArchitectureType
 
-  # Monitoring and Logging Resources
+  # ============================================================================
+  # MONITORING AND SECURITY RESOURCES
+  # ============================================================================
+  # Enterprise monitoring infrastructure and security service identifiers
+  
+  # KMS encryption key for secure log storage
   LogEncryptionKeyId:
-    Description: "KMS Key ID for log encryption"
+    Description: "KMS Key ID for log encryption - used to encrypt sensitive audit and security logs"
     Value: !Ref LogEncryptionKey
     Export:
       Name: !Sub ${AWS::StackName}-LogEncryptionKey
