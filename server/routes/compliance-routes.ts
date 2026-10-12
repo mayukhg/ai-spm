@@ -462,9 +462,9 @@ router.get('/reports/stats', loginRequired, roleRequired(['admin', 'ciso', 'comp
 
 /**
  * Get available compliance frameworks
- * GET /api/compliance/frameworks
+ * GET /api/compliance/catalog
  */
-router.get('/frameworks', loginRequired, async (req: Request, res: Response) => {
+router.get('/catalog', loginRequired, async (req: Request, res: Response) => {
   try {
     const frameworks = complianceReportGenerator.getAvailableFrameworks();
 

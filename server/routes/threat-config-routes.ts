@@ -11,8 +11,8 @@ import path from 'path';
 const router = express.Router();
 
 // Configuration file path
-const THREAT_CONFIG_PATH = path.join(__dirname, '../config/threat-detection-config.json');
-const COMPLIANCE_CONFIG_PATH = path.join(__dirname, '../config/compliance-policies.json');
+const THREAT_CONFIG_PATH = path.join(import.meta.dirname, '../config/threat-detection-config.json');
+const COMPLIANCE_CONFIG_PATH = path.join(import.meta.dirname, '../config/compliance-policies.json');
 
 // Validation schemas
 const ThreatUpdateSchema = z.object({

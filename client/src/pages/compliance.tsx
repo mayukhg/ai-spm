@@ -88,6 +88,7 @@ export default function Compliance() {
   const { data: frameworks, isLoading: frameworksLoading } = useQuery<ComplianceFramework[]>({
     queryKey: ["/api/compliance/frameworks"],
   });
+  const frameworkList = Array.isArray(frameworks) ? frameworks : [];
 
   // Fetch AI assets for assessment creation
   const { data: assets } = useQuery<AiAsset[]>({
@@ -108,7 +109,7 @@ export default function Compliance() {
 
   // Assessment form
   const assessmentForm = useForm<InsertComplianceAssessment>({
-    resolver: zodResolver(insertComplianceAssessmentSchema),
+    resolver: zodResolver(insertComplianceAssessmentSchema.omit({ assessedBy: true })),
     defaultValues: {
       assetId: 0,
       frameworkId: 0,
@@ -504,7 +505,7 @@ export default function Compliance() {
                                     <SelectValue placeholder="Select framework" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {frameworks?.map((framework) => (
+                                    {frameworkList.map((framework) => (
                                       <SelectItem key={framework.id} value={framework.id.toString()}>
                                         {framework.name}
                                       </SelectItem>
@@ -650,8 +651,8 @@ export default function Compliance() {
                               </TableCell>
                             </TableRow>
                           ))
-                        ) : frameworks && frameworks.length > 0 ? (
-                          frameworks.map((framework) => (
+                        ) : frameworkList.length > 0 ? (
+                          frameworkList.map((framework) => (
                             <TableRow key={framework.id} className="hover:bg-muted/50">
                               <TableCell>
                                 <div>

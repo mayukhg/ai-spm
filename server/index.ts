@@ -125,17 +125,17 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-// 404 handler for API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    error: 'API endpoint not found',
-    path: req.path,
-    correlationId: req.headers['x-correlation-id'],
-  });
-});
-
 (async () => {
   const server = await registerRoutes(app);
+
+  // Registered after application routes so it does not swallow them.
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({
+      error: 'API endpoint not found',
+      path: req.path,
+      correlationId: req.headers['x-correlation-id'],
+    });
+  });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
@@ -146,14 +146,12 @@ app.use('/api/*', (req, res) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Serves both the API and the client. PORT overrides the default so local
+  // macOS can avoid the AirPlay listener on 5000.
+  const port = Number(process.env.PORT) || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`AI-SPM Platform serving on port ${port}`);
     log(`Security features: Authentication, SIEM, Model Security, Privacy Governance`);
@@ -170,4 +168,7 @@ app.use('/api/*', (req, res) => {
       log(`Splunk SIEM integration enabled`);
     }
   });
-})();
+})().catch((err) => {
+  console.error("Failed to start AI-SPM server:", err);
+  process.exit(1);
+});
