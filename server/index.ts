@@ -1,4 +1,6 @@
 import "dotenv/config";
+// Phoenix Option 1 tracing — must load before OpenAI/OpenRouter client imports
+import { shutdownPhoenixTracing } from "./observability/tracer";
 import express, { type Request, Response, NextFunction } from "express";
 import session from 'express-session';
 import passport from 'passport';
@@ -181,6 +183,16 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     if (process.env.RESIDENT_AGENT !== "false") {
       startResidentAgent();
     }
+
+    const flushPhoenix = async () => {
+      await shutdownPhoenixTracing();
+    };
+    process.once("SIGTERM", () => {
+      void flushPhoenix().finally(() => process.exit(0));
+    });
+    process.once("SIGINT", () => {
+      void flushPhoenix().finally(() => process.exit(0));
+    });
   });
 })().catch((err) => {
   console.error("Failed to start AI-SPM server:", err);

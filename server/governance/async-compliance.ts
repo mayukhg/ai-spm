@@ -16,6 +16,7 @@ import {
   governanceReports,
   monitoringCycles,
 } from "@shared/schema";
+import { withSpan } from "@arizeai/phoenix-otel";
 import { chatCompletion, openRouterConfigured, openRouterModel } from "./openrouter-client";
 import { logger } from "../monitoring/logger";
 
@@ -193,7 +194,8 @@ export async function startGovernanceReport(options: {
   return pending;
 }
 
-async function synthesizeReport(
+const synthesizeReport = withSpan(
+  async function synthesizeReport(
   reportId: number,
   assetId: number,
   assetName: string,
@@ -247,4 +249,9 @@ async function synthesizeReport(
     model: completion.model,
     elapsedMs: Date.now() - started,
   });
-}
+},
+  {
+    name: "governance.synthesize_report",
+    kind: "CHAIN",
+  },
+);

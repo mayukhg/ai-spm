@@ -13,10 +13,18 @@ Dashboard and API for inventorying AI assets, scoring security and data-quality 
 | Prompt security | Local phrase/token classifier for prompt injection and jailbreak (`/prompt-checks`) |
 | Continuous health | Resident agent every **15 minutes** + **Run now**: six quality dimensions, KS drift, Isolation Forest, LOF (`/health-governance`) |
 | Async governance | OpenRouter `openai/gpt-4o-mini` synthesizes GDPR / NIST markdown when `OPENROUTER_API_KEY` is set |
+| LLM eval / observability | Arize Phoenix Option 1 tracing + governance eval dataset (`npm run phoenix:seed`, UI on **:6006**) |
 | Theme | Black high-contrast UI |
 | Regression | `npm run test:regression` (unit + API + Puppeteer headless UI) |
 
 Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEALTH_GOVERNANCE.md). Latest regression results: [`docs/REGRESSION_VALIDATION_REPORT.md`](docs/REGRESSION_VALIDATION_REPORT.md).
+
+**Eval & observability**
+
+| Doc | Description |
+| --- | --- |
+| [Phoenix eval framework (PM + hosting + parameters)](docs/PHOENIX_EVAL_FRAMEWORK.md) | Why we evaluate the async LLM path, how Phoenix is hosted, eval parameters and persona rationale |
+| [Phoenix tracing setup (Option 1)](docs/PHOENIX_OBSERVABILITY.md) | Tracer bootstrap, OpenRouter instrumentation, env vars, seed commands |
 
 ## Demo assets
 
@@ -25,6 +33,7 @@ Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEAL
 | [HTML workflow mockup](docs/AI_SPM_WORKFLOW_MOCKUP.html) | Interactive clickable map of every app workflow (auth, pages, quick actions, APIs) — open in a browser |
 | [PM interview walkthrough video](docs/interview/AI_SPM_PM_Demo.mp4) | Silent ~3.2 min live app demo with burned-in captions |
 | [Video player](docs/interview/PM_DEMO_PLAYER.html) | Browser player + interview tips for the walkthrough |
+| [Phoenix eval fixtures](fixtures/synthetic/phoenix/) | Governance eval dataset, synthetic outputs, and latest `eval-runs.json` scorecard |
 
 ## Architecture rule
 

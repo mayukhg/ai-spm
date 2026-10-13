@@ -1,0 +1,85 @@
+{
+  "dataset": "ai-spm-governance-eval",
+  "collector": "http://localhost:6006",
+  "project": "my-cursor-app",
+  "generated_at": "2026-10-13T07:26:30.913Z",
+  "runs": [
+    {
+      "example_id": "gov-eval-001",
+      "mode": "live",
+      "model": "openai/gpt-4o-mini",
+      "latency_ms": 17810,
+      "usage": {
+        "prompt_tokens": 407,
+        "completion_tokens": 583,
+        "total_tokens": 990
+      },
+      "structure_sections_pass": false,
+      "missing_sections": [
+        "KS"
+      ],
+      "output_preview": "# Compliance Documentation for Ticket Training Set\n\n## Executive Summary\nThis document provides an overview of the compliance status of the \"ticket-training-set\" asset in relation to the General Data Protection Regulation (GDPR) and the NIST AI Risk Management Framework (NIST AI ",
+      "scored_at": "2026-10-13T07:25:49.702Z"
+    },
+    {
+      "example_id": "gov-eval-002",
+      "mode": "live",
+      "model": "openai/gpt-4o-mini",
+      "latency_ms": 9419,
+      "usage": {
+        "prompt_tokens": 281,
+        "completion_tokens": 622,
+        "total_tokens": 903
+      },
+      "structure_sections_pass": true,
+      "missing_sections": [],
+      "output_preview": "# Compliance Documentation for Support Assistant\n\n## Executive Summary\nThis document provides an overview of the compliance status of the \"support-assistant\" asset in relation to the General Data Protection Regulation (GDPR). The assessment includes an evaluation of data quality ",
+      "scored_at": "2026-10-13T07:25:59.123Z"
+    },
+    {
+      "example_id": "gov-eval-003",
+      "mode": "live",
+      "model": "openai/gpt-4o-mini",
+      "latency_ms": 10652,
+      "usage": {
+        "prompt_tokens": 329,
+        "completion_tokens": 573,
+        "total_tokens": 902
+      },
+      "structure_sections_pass": true,
+      "missing_sections": [],
+      "output_preview": "# Compliance Documentation for Claims LLM\n\n## Executive Summary\nThis document provides an overview of the compliance status of the \"claims-llm\" asset, focusing on its adherence to the NIST AI Risk Management Framework (AI RMF). The evidence presented demonstrates the quality of t",
+      "scored_at": "2026-10-13T07:26:09.775Z"
+    },
+    {
+      "example_id": "gov-eval-004",
+      "mode": "live",
+      "model": "openai/gpt-4o-mini",
+      "latency_ms": 14801,
+      "usage": {
+        "prompt_tokens": 287,
+        "completion_tokens": 663,
+        "total_tokens": 950
+      },
+      "structure_sections_pass": true,
+      "missing_sections": [],
+      "output_preview": "# Compliance Documentation for rag-indexer\n\n## Executive Summary\nThis document provides a compliance overview for the asset \"rag-indexer\" in relation to the General Data Protection Regulation (GDPR) and the NIST AI Risk Management Framework (NIST AI RMF). The compliance assessmen",
+      "scored_at": "2026-10-13T07:26:24.576Z"
+    },
+    {
+      "example_id": "gov-eval-005",
+      "mode": "live",
+      "model": "openai/gpt-4o-mini",
+      "latency_ms": 6337,
+      "usage": {
+        "prompt_tokens": 442,
+        "completion_tokens": 732,
+        "total_tokens": 1174
+      },
+      "structure_sections_pass": true,
+      "missing_sections": [],
+      "output_preview": "# Compliance Documentation for Ticket Training Set - Dirty\n\n## Executive Summary\nThis document provides an audit-ready overview of the compliance status of the asset \"ticket-training-set-dirty\" against the GDPR and NIST AI RMF frameworks. The evidence collected indicates signific",
+      "scored_at": "2026-10-13T07:26:30.913Z"
+    }
+  ]
+}

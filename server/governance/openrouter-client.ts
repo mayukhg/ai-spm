@@ -1,7 +1,13 @@
 /**
  * OpenRouter client for asynchronous natural-language synthesis only.
  * Real-time monitoring must never call this module.
+ *
+ * Uses the official OpenAI Node SDK pointed at OpenRouter so Arize Phoenix
+ * OpenInference instrumentation can capture prompts, completions, and tokens.
  */
+
+import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export type OpenRouterChatMessage = {
   role: "system" | "user" | "assistant";
@@ -23,6 +29,17 @@ export function openRouterModel() {
   return process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-4o-mini";
 }
 
+function createClient(apiKey: string) {
+  return new OpenAI({
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: {
+      "HTTP-Referer": process.env.CORS_ORIGIN || "http://localhost:5050",
+      "X-Title": "AI-SPM Governance Reports",
+    },
+  });
+}
+
 export async function chatCompletion(
   messages: OpenRouterChatMessage[],
   options: { temperature?: number; maxTokens?: number } = {},
@@ -36,37 +53,30 @@ export async function chatCompletion(
 
   const model = openRouterModel();
   const started = Date.now();
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.CORS_ORIGIN || "http://localhost:5050",
-      "X-Title": "AI-SPM Governance Reports",
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options.temperature ?? 0.2,
-      max_tokens: options.maxTokens ?? 2500,
-    }),
+  const client = createClient(apiKey);
+
+  const completion = await client.chat.completions.create({
+    model,
+    messages: messages as ChatCompletionMessageParam[],
+    temperature: options.temperature ?? 0.2,
+    max_tokens: options.maxTokens ?? 2500,
   });
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail = payload?.error?.message || payload?.message || response.statusText;
-    throw new Error(`OpenRouter request failed (${response.status}): ${detail}`);
-  }
-
-  const content = payload?.choices?.[0]?.message?.content;
+  const content = completion.choices?.[0]?.message?.content;
   if (!content || typeof content !== "string") {
     throw new Error("OpenRouter returned an empty completion");
   }
 
   return {
     content,
-    model: payload.model || model,
+    model: completion.model || model,
     elapsedMs: Date.now() - started,
-    usage: payload.usage,
+    usage: completion.usage
+      ? {
+          prompt_tokens: completion.usage.prompt_tokens,
+          completion_tokens: completion.usage.completion_tokens,
+          total_tokens: completion.usage.total_tokens,
+        }
+      : undefined,
   };
 }

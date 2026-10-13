@@ -1,0 +1,166 @@
+{
+  "dataset_name": "ai-spm-governance-eval",
+  "description": "Synthetic eval cases for async GDPR/NIST governance LLM outputs in AI-SPM",
+  "version": "1.0.0",
+  "examples": [
+    {
+      "id": "gov-eval-001",
+      "input": {
+        "assetName": "ticket-training-set",
+        "frameworks": ["GDPR", "NIST AI RMF"],
+        "evidence": {
+          "quality": [
+            { "metricType": "completeness", "metricValue": 0.97, "status": "pass" },
+            { "metricType": "accuracy", "metricValue": 0.94, "status": "pass" },
+            { "metricType": "consistency", "metricValue": 0.91, "status": "pass" },
+            { "metricType": "validity", "metricValue": 0.96, "status": "pass" },
+            { "metricType": "uniqueness", "metricValue": 0.99, "status": "pass" },
+            { "metricType": "freshness", "metricValue": 0.88, "status": "warn" }
+          ],
+          "drift": [{ "driftScore": 0.12, "status": "stable", "detectionMethod": "kolmogorov_smirnov" }],
+          "anomalies": [{ "detectionMethod": "isolation_forest", "affectedRecords": 3, "severity": "low" }]
+        }
+      },
+      "reference_output": {
+        "must_include": ["Executive Summary", "GDPR", "NIST", "KS", "Isolation Forest", "Gaps"],
+        "must_not_invent_controls": true,
+        "tone": "audit-ready"
+      },
+      "metadata": {
+        "eval_type": "governance_narrative",
+        "persona": "compliance_officer",
+        "severity": "medium"
+      }
+    },
+    {
+      "id": "gov-eval-002",
+      "input": {
+        "assetName": "support-assistant",
+        "frameworks": ["GDPR"],
+        "evidence": {
+          "quality": [
+            { "metricType": "completeness", "metricValue": 0.72, "status": "fail" },
+            { "metricType": "freshness", "metricValue": 0.55, "status": "fail" }
+          ],
+          "drift": [{ "driftScore": 0.41, "status": "drifted", "detectionMethod": "kolmogorov_smirnov" }],
+          "anomalies": [
+            { "detectionMethod": "local_outlier_factor", "affectedRecords": 48, "severity": "high" }
+          ]
+        }
+      },
+      "reference_output": {
+        "must_include": ["Executive Summary", "GDPR", "drift", "Remediation", "Gaps"],
+        "must_call_out_failures": true,
+        "tone": "audit-ready"
+      },
+      "metadata": {
+        "eval_type": "governance_narrative",
+        "persona": "ciso",
+        "severity": "high"
+      }
+    },
+    {
+      "id": "gov-eval-003",
+      "input": {
+        "assetName": "claims-llm",
+        "frameworks": ["NIST AI RMF"],
+        "evidence": {
+          "quality": [
+            { "metricType": "completeness", "metricValue": 0.99, "status": "pass" },
+            { "metricType": "accuracy", "metricValue": 0.98, "status": "pass" },
+            { "metricType": "consistency", "metricValue": 0.97, "status": "pass" },
+            { "metricType": "validity", "metricValue": 0.99, "status": "pass" },
+            { "metricType": "uniqueness", "metricValue": 1.0, "status": "pass" },
+            { "metricType": "freshness", "metricValue": 0.95, "status": "pass" }
+          ],
+          "drift": [],
+          "anomalies": []
+        }
+      },
+      "reference_output": {
+        "must_include": ["NIST", "Evidence Summary", "quality"],
+        "expected_posture": "healthy",
+        "tone": "audit-ready"
+      },
+      "metadata": {
+        "eval_type": "governance_narrative",
+        "persona": "analyst",
+        "severity": "low"
+      }
+    },
+    {
+      "id": "gov-eval-004",
+      "input": {
+        "assetName": "rag-indexer",
+        "frameworks": ["GDPR", "NIST AI RMF"],
+        "evidence": {
+          "quality": [
+            { "metricType": "completeness", "metricValue": 0.84, "status": "warn" },
+            { "metricType": "validity", "metricValue": 0.79, "status": "warn" }
+          ],
+          "drift": [{ "driftScore": 0.28, "status": "watch", "detectionMethod": "kolmogorov_smirnov" }],
+          "anomalies": [{ "detectionMethod": "isolation_forest", "affectedRecords": 12, "severity": "medium" }]
+        }
+      },
+      "reference_output": {
+        "must_include": ["GDPR", "NIST", "Recommended Remediation"],
+        "must_not_invent_controls": true
+      },
+      "metadata": {
+        "eval_type": "governance_narrative",
+        "persona": "compliance_officer",
+        "severity": "medium"
+      }
+    },
+    {
+      "id": "gov-eval-005",
+      "input": {
+        "assetName": "ticket-training-set-dirty",
+        "frameworks": ["GDPR", "NIST AI RMF"],
+        "evidence": {
+          "quality": [
+            { "metricType": "completeness", "metricValue": 0.61, "status": "fail" },
+            { "metricType": "accuracy", "metricValue": 0.58, "status": "fail" },
+            { "metricType": "consistency", "metricValue": 0.64, "status": "fail" },
+            { "metricType": "validity", "metricValue": 0.52, "status": "fail" },
+            { "metricType": "uniqueness", "metricValue": 0.7, "status": "warn" },
+            { "metricType": "freshness", "metricValue": 0.4, "status": "fail" }
+          ],
+          "drift": [{ "driftScore": 0.67, "status": "drifted", "detectionMethod": "kolmogorov_smirnov" }],
+          "anomalies": [
+            { "detectionMethod": "isolation_forest", "affectedRecords": 120, "severity": "critical" },
+            { "detectionMethod": "local_outlier_factor", "affectedRecords": 95, "severity": "high" }
+          ]
+        }
+      },
+      "reference_output": {
+        "must_include": ["Gaps", "Remediation", "GDPR", "NIST", "drift"],
+        "must_call_out_failures": true,
+        "tone": "urgent-audit"
+      },
+      "metadata": {
+        "eval_type": "governance_narrative",
+        "persona": "ciso",
+        "severity": "critical",
+        "maps_to_slide": "silent_data_decay"
+      }
+    }
+  ],
+  "evaluators": [
+    {
+      "name": "structure_sections",
+      "type": "contains_all",
+      "fields": ["reference_output.must_include"]
+    },
+    {
+      "name": "no_fabricated_controls",
+      "type": "llm_as_judge",
+      "rubric": "Fail if the output invents security controls not present in evidence JSON."
+    },
+    {
+      "name": "evidence_grounding",
+      "type": "llm_as_judge",
+      "rubric": "Pass only if quality, drift, and anomaly findings are reflected accurately."
+    }
+  ]
+}
