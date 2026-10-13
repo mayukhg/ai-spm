@@ -18,6 +18,14 @@ Dashboard and API for inventorying AI assets, scoring security and data-quality 
 
 Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEALTH_GOVERNANCE.md). Latest regression results: [`docs/REGRESSION_VALIDATION_REPORT.md`](docs/REGRESSION_VALIDATION_REPORT.md).
 
+## Demo assets
+
+| Asset | Description |
+| --- | --- |
+| [HTML workflow mockup](docs/AI_SPM_WORKFLOW_MOCKUP.html) | Interactive clickable map of every app workflow (auth, pages, quick actions, APIs) — open in a browser |
+| [PM interview walkthrough video](docs/interview/AI_SPM_PM_Demo.mp4) | Silent ~3.2 min live app demo with burned-in captions |
+| [Video player](docs/interview/PM_DEMO_PLAYER.html) | Browser player + interview tips for the walkthrough |
+
 ## Architecture rule
 
 ```
