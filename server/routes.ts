@@ -18,6 +18,19 @@ import adversarialDetectionRoutes from './routes/adversarial-detection-routes';
 import { dataQualityRoutes } from './data-quality/data-quality-routes';
 import { evidenceAssessment, persistDatasetCheck, persistLlmClassifications, persistScanFindings, replayWizFixture } from './analysis/persist-results';
 import { classifyLlmPrompts, siemEvent } from './analysis/synthetic-analysis';
+import {
+  getResidentAgentStatus,
+  listRecentCycles,
+  runMonitoringCycle,
+  startResidentAgent,
+  stopResidentAgent,
+} from './governance/resident-agent';
+import {
+  getGovernanceReport,
+  governanceProviderStatus,
+  listGovernanceReports,
+  startGovernanceReport,
+} from './governance/async-compliance';
 
 // Microservices integration - simplified for development
 interface MicroserviceRequest extends Request {
@@ -95,6 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       authentication: "session",
       roles: ["ciso", "analyst", "engineer", "compliance_officer"],
       syntheticFixtures: process.env.SYNTHETIC_FIXTURES === "true",
+      residentAgent: process.env.RESIDENT_AGENT !== "false",
       wiz: {
         configured: Boolean(process.env.WIZ_CLIENT_ID && process.env.WIZ_CLIENT_SECRET),
       },
@@ -102,6 +116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         splunk: Boolean(process.env.SPLUNK_ENDPOINT && process.env.SPLUNK_TOKEN),
         qradar: Boolean(process.env.QRADAR_ENDPOINT && process.env.QRADAR_TOKEN),
         sentinel: Boolean(process.env.SENTINEL_WORKSPACE_ID && process.env.SENTINEL_SHARED_KEY),
+      },
+      openrouter: {
+        configured: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+        model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
+        purpose: "async_governance_reports",
       },
       services: {
         aiScanner: process.env.AI_SCANNER_URL || "http://127.0.0.1:8001",
@@ -363,6 +382,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(alert);
     } catch (error) {
+      next(error);
+    }
+  });
+
+  // Continuous Automated Health & Governance (fast-math + async OpenRouter)
+  app.get("/api/governance/health/status", requireAuth, async (_req, res, next) => {
+    try {
+      res.json({
+        agent: getResidentAgentStatus(),
+        openrouter: governanceProviderStatus(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/governance/health/cycles", requireAuth, async (req, res, next) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      res.json(await listRecentCycles(limit));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/governance/health/run-now", requireAuth, async (req, res, next) => {
+    try {
+      const result = await runMonitoringCycle("manual");
+      await logAction(req.user.id, "resident_monitor_run", "ai_assets", result.assetId, {
+        elapsedMs: result.elapsedMs,
+        withinBudget: result.withinBudget,
+      });
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/governance/health/start", requireAuth, requireRole(["ciso", "analyst"]), async (req, res, next) => {
+    try {
+      const status = startResidentAgent();
+      await logAction(req.user.id, "resident_agent_start", "system", undefined, status);
+      res.json(status);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/governance/health/stop", requireAuth, requireRole(["ciso"]), async (req, res, next) => {
+    try {
+      const status = stopResidentAgent();
+      await logAction(req.user.id, "resident_agent_stop", "system", undefined, status);
+      res.json(status);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/governance/reports", requireAuth, async (req, res, next) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      res.json(await listGovernanceReports(limit));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/governance/reports/:id", requireAuth, async (req, res, next) => {
+    try {
+      const report = await getGovernanceReport(parseInt(req.params.id));
+      if (!report) return res.status(404).json({ error: "Report not found" });
+      res.json(report);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/governance/reports", requireAuth, async (req, res, next) => {
+    try {
+      const report = await startGovernanceReport({
+        assetId: req.body.assetId ? Number(req.body.assetId) : undefined,
+        createdBy: req.user.id,
+        frameworks: req.body.frameworks,
+      });
+      await logAction(req.user.id, "governance_report_started", "ai_assets", report.assetId ?? undefined, {
+        reportId: report.id,
+        frameworks: report.frameworks,
+      });
+      res.status(202).json(report);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to start governance report";
+      if (message.includes("OPENROUTER_API_KEY")) {
+        return res.status(503).json({
+          error: message,
+          needsOpenRouterKey: true,
+          hint: "Add OPENROUTER_API_KEY to the local .env file and restart the server.",
+        });
+      }
       next(error);
     }
   });

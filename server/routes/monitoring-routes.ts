@@ -32,7 +32,9 @@ router.get('/health', requireAuth, async (req, res) => {
       requestedBy: (req as any).user?.id || 'anonymous'
     });
     
-    res.status(health.overall === 'unhealthy' ? 503 : 200).json({
+    // Always 200 when the check itself succeeds — overall status lives in the body.
+    // (503 here previously broke the System Monitoring UI even with a valid payload.)
+    res.status(200).json({
       success: true,
       health,
       message: 'System health status retrieved successfully'

@@ -4,3 +4,7 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+.env
+logs/*.log
+logs/.*-audit.json
+tests/regression/artifacts/

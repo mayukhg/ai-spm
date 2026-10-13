@@ -137,6 +137,40 @@ export const postureSnapshots = pgTable("posture_snapshots", {
   assetCount: integer("asset_count").notNull(),
 });
 
+// Async LLM-synthesized governance reports (OpenRouter). Never on the real-time path.
+export const governanceReports = pgTable("governance_reports", {
+  id: serial("id").primaryKey(),
+  assetId: integer("asset_id").references(() => aiAssets.id),
+  frameworks: jsonb("frameworks").notNull(), // e.g. ["GDPR","NIST"]
+  status: text("status").notNull().default("pending"), // pending, running, completed, failed
+  title: text("title").notNull(),
+  summary: text("summary"),
+  bodyMarkdown: text("body_markdown"),
+  evidenceSnapshot: jsonb("evidence_snapshot"),
+  model: text("model"),
+  provider: text("provider").default("openrouter"),
+  elapsedMs: integer("elapsed_ms"),
+  error: text("error"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Resident agent monitoring cycle results (fast-math only)
+export const monitoringCycles = pgTable("monitoring_cycles", {
+  id: serial("id").primaryKey(),
+  assetId: integer("asset_id").references(() => aiAssets.id).notNull(),
+  trigger: text("trigger").notNull(), // scheduled | manual
+  elapsedMs: integer("elapsed_ms").notNull(),
+  withinBudget: boolean("within_budget").notNull(),
+  qualityOverall: decimal("quality_overall", { precision: 10, scale: 4 }).notNull(),
+  driftStatus: text("drift_status").notNull(),
+  isolationAnomalies: integer("isolation_anomalies").notNull(),
+  lofAnomalies: integer("lof_anomalies").notNull(),
+  result: jsonb("result").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
@@ -472,6 +506,16 @@ export const insertDataQualityBaselineSchema = createInsertSchema(dataQualityBas
   createdAt: true,
 });
 
+export const insertGovernanceReportSchema = createInsertSchema(governanceReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMonitoringCycleSchema = createInsertSchema(monitoringCycles).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for data quality entities
 export type DataQualityMetric = typeof dataQualityMetrics.$inferSelect;
 export type InsertDataQualityMetric = z.infer<typeof insertDataQualityMetricSchema>;
@@ -490,6 +534,11 @@ export type InsertDataValidationRule = z.infer<typeof insertDataValidationRuleSc
 
 export type DataQualityBaseline = typeof dataQualityBaselines.$inferSelect;
 export type InsertDataQualityBaseline = z.infer<typeof insertDataQualityBaselineSchema>;
+
+export type GovernanceReport = typeof governanceReports.$inferSelect;
+export type InsertGovernanceReport = z.infer<typeof insertGovernanceReportSchema>;
+export type MonitoringCycle = typeof monitoringCycles.$inferSelect;
+export type InsertMonitoringCycle = z.infer<typeof insertMonitoringCycleSchema>;
 
 // Additional types for API responses
 export type VulnerabilityStats = {

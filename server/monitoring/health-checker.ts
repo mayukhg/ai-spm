@@ -3,6 +3,7 @@
  * Real-time health checks for all platform components
  */
 
+import fs from 'fs';
 import { logger, SecurityEventType } from './logger';
 import { metrics } from './metrics-collector';
 import { db } from '../db';
@@ -48,8 +49,11 @@ class HealthChecker {
       'data-integrity': process.env.DATA_INTEGRITY_URL || 'http://localhost:8002',
       'wiz-integration': process.env.WIZ_INTEGRATION_URL || 'http://localhost:8003',
       'compliance-engine': process.env.COMPLIANCE_ENGINE_URL || 'http://localhost:8004',
-      'agent-orchestrator': process.env.AGENT_ORCHESTRATOR_URL || 'http://localhost:8005'
     };
+    // Optional external orchestrator — only probe when explicitly configured.
+    if (process.env.AGENT_ORCHESTRATOR_URL) {
+      this.microserviceUrls['agent-orchestrator'] = process.env.AGENT_ORCHESTRATOR_URL;
+    }
 
     this.startPeriodicHealthChecks();
   }
@@ -289,10 +293,9 @@ class HealthChecker {
 
   async checkDisk(): Promise<ComponentHealth> {
     try {
-      const fs = require('fs');
-      const stats = fs.statSync('.');
-      
-      // This is a basic check; in production, use proper disk space monitoring
+      fs.statSync('.');
+      fs.accessSync('.', fs.constants.R_OK | fs.constants.W_OK);
+
       return {
         name: 'disk',
         status: 'healthy',
@@ -442,19 +445,16 @@ class HealthChecker {
 
   async checkSecurityComponents(): Promise<ComponentHealth[]> {
     const securityChecks: ComponentHealth[] = [];
+    const configPath = './server/config/threat-detection-config.json';
 
-    // Check threat detection configuration
     try {
-      const fs = require('fs');
-      const configPath = './server/config/threat-detection-config.json';
-      
       if (fs.existsSync(configPath)) {
         const configData = fs.readFileSync(configPath, 'utf8');
         const config = JSON.parse(configData);
-        
+
         const enabledThreats = Object.values(config.aiSpecificThreats || {})
           .filter((threat: any) => threat.enabled).length;
-        
+
         securityChecks.push({
           name: 'threat-detection',
           status: enabledThreats > 0 ? 'healthy' : 'degraded',

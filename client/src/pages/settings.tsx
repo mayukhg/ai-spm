@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 interface SettingsStatus {
   authentication: string;
   syntheticFixtures: boolean;
+  residentAgent?: boolean;
   wiz: { configured: boolean };
   siem: { splunk: boolean; qradar: boolean; sentinel: boolean };
+  openrouter?: { configured: boolean; model: string; purpose: string };
   services: Record<string, string>;
 }
 
@@ -39,6 +41,11 @@ export default function SettingsPage() {
             <CardContent className="space-y-2 text-sm">
               <p>Authentication: {status?.authentication}</p>
               <p>Synthetic fixtures: {status?.syntheticFixtures ? "enabled" : "disabled"}</p>
+              <p>Resident agent: {status?.residentAgent ? "enabled" : "disabled"}</p>
+              <p className="flex items-center gap-2">
+                OpenRouter {connector(Boolean(status?.openrouter?.configured))}
+                <span className="text-muted-foreground">{status?.openrouter?.model}</span>
+              </p>
               <p className="flex items-center gap-2">Wiz {connector(Boolean(status?.wiz.configured))}</p>
               <p className="flex items-center gap-2">Splunk {connector(Boolean(status?.siem.splunk))}</p>
               <p className="flex items-center gap-2">QRadar {connector(Boolean(status?.siem.qradar))}</p>

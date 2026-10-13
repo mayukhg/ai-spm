@@ -65,16 +65,39 @@ import { formatDistanceToNow } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertComplianceFrameworkSchema, insertComplianceAssessmentSchema } from "@shared/schema";
+import { useLocation } from "wouter";
 
 export default function Compliance() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isAddFrameworkOpen, setIsAddFrameworkOpen] = useState(false);
   const [isAddAssessmentOpen, setIsAddAssessmentOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
   
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const exportComplianceOverview = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/compliance/overview");
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `compliance-overview-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Export ready", description: "Compliance overview downloaded as JSON." });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Check if user has compliance management permissions
   const canManageCompliance = user?.role === "ciso" || user?.role === "compliance_officer";
@@ -225,7 +248,7 @@ export default function Compliance() {
           onSearch={setSearchQuery}
           actions={
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={exportComplianceOverview}>
                 <Download className="h-4 w-4" />
                 Export Report
               </Button>
@@ -573,17 +596,29 @@ export default function Compliance() {
                         </DialogContent>
                       </Dialog>
 
-                      <Button className="w-full justify-start gap-2" variant="outline">
+                      <Button
+                        className="w-full justify-start gap-2"
+                        variant="outline"
+                        onClick={() => setLocation("/health-governance")}
+                      >
                         <FileText className="h-4 w-4" />
                         Generate Compliance Report
                       </Button>
                       
-                      <Button className="w-full justify-start gap-2" variant="outline">
+                      <Button
+                        className="w-full justify-start gap-2"
+                        variant="outline"
+                        onClick={() => setIsAddAssessmentOpen(true)}
+                      >
                         <Calendar className="h-4 w-4" />
                         Schedule Assessment
                       </Button>
                       
-                      <Button className="w-full justify-start gap-2" variant="outline">
+                      <Button
+                        className="w-full justify-start gap-2"
+                        variant="outline"
+                        onClick={() => setLocation("/settings")}
+                      >
                         <Shield className="h-4 w-4" />
                         Policy Management
                       </Button>

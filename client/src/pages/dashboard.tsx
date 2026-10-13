@@ -1,7 +1,7 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/sidebar";
@@ -11,11 +11,16 @@ import AssetTable from "@/components/dashboard/asset-table";
 import AlertFeed from "@/components/dashboard/alert-feed";
 import ComplianceStatus from "@/components/dashboard/compliance-status";
 import SecurityTrendChart from "@/components/charts/security-trend-chart";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Shield, TrendingUp, AlertTriangle, CheckCircle, 
          Search, FileText, ShieldCheck, Settings } from "lucide-react";
 import type { DashboardMetrics, VulnerabilityStats } from "@/types";
 
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [scanBusy, setScanBusy] = useState(false);
   // Fetch dashboard metrics
   const { data: metrics, isLoading: metricsLoading } = useQuery<DashboardMetrics>({
     queryKey: ["/api/dashboard/metrics"],
@@ -36,6 +41,39 @@ export default function Dashboard() {
   const { data: complianceOverview, isLoading: complianceLoading } = useQuery({
     queryKey: ["/api/compliance/overview"],
   });
+
+  const runAssetScan = async () => {
+    setScanBusy(true);
+    try {
+      const assetsRes = await apiRequest("GET", "/api/ai-assets?type=model");
+      const assets = await assetsRes.json();
+      const target = Array.isArray(assets)
+        ? assets.find((asset: { name?: string }) => asset.name === "support-assistant") || assets[0]
+        : null;
+      if (!target?.id) {
+        throw new Error("No model asset available to scan");
+      }
+      const scanRes = await apiRequest("POST", "/api/ai-scanner/scan", {
+        asset_id: target.id,
+        asset_type: "model",
+        scan_depth: "standard",
+      });
+      const scan = await scanRes.json();
+      toast({
+        title: "Asset scan started",
+        description: `${target.name}: ${scan.scan_id || scan.status || "queued"}`,
+      });
+      setLocation("/vulnerabilities");
+    } catch (error) {
+      toast({
+        title: "Scan failed",
+        description: error instanceof Error ? error.message : "Unable to start scan",
+        variant: "destructive",
+      });
+    } finally {
+      setScanBusy(false);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -75,7 +113,7 @@ export default function Dashboard() {
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       Live
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setLocation("/monitoring")}>
                       View Details
                     </Button>
                   </div>
@@ -109,19 +147,19 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-3">
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start" variant="outline" onClick={runAssetScan} disabled={scanBusy}>
                       <Search className="h-4 w-4 mr-2" />
-                      Run Asset Scan
+                      {scanBusy ? "Scanning…" : "Run Asset Scan"}
                     </Button>
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/health-governance")}>
                       <FileText className="h-4 w-4 mr-2" />
                       Generate Report
                     </Button>
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/prompt-checks")}>
                       <ShieldCheck className="h-4 w-4 mr-2" />
                       Security Audit
                     </Button>
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/settings")}>
                       <Settings className="h-4 w-4 mr-2" />
                       Configure Policies
                     </Button>

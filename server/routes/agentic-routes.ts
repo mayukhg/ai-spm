@@ -107,16 +107,22 @@ const MCPContextSchema = z.object({
 
 // Middleware for authentication check
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // Implementation would verify JWT token or session
-  // For demo, we'll assume user is authenticated
-  (req as any).user = { id: 'user-123', roles: ['agent-manager'] };
+  if (typeof (req as any).isAuthenticated !== 'function' || !(req as any).isAuthenticated()) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
   next();
 };
 
 // Middleware for agent management permissions
 const requireAgentManagement = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const user = (req as any).user;
-  if (!user || !user.roles.includes('agent-manager')) {
+  const role = user?.role || '';
+  const roles: string[] = Array.isArray(user?.roles) ? user.roles : [];
+  const allowed =
+    roles.includes('agent-manager') ||
+    role === 'ciso' ||
+    role === 'engineer';
+  if (!user || !allowed) {
     return res.status(403).json({ error: 'Agent management permissions required' });
   }
   next();

@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI-SPM — Workflow Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000;
+      --fg: #f5f5f5;
+      --muted: #1f1f1f;
+      --muted-fg: #c7c7c7;
+      --card: #121212;
+      --border: #3d3d3d;
+      --primary: #3b82f6;
+      --primary-fg: #fff;
+      --success: #22c55e;
+      --warning: #eab308;
+      --danger: #ef4444;
+      --sidebar-w: 240px;
+      --radius: 8px;
+      --font: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.45;
+    }
+    button, input, select, textarea { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Toast */
+    #toast-root {
+      position: fixed; top: 16px; right: 16px; z-index: 1000;
+      display: flex; flex-direction: column; gap: 8px; max-width: 360px;
+    }
+    .toast {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px 14px; box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      animation: slideIn .2s ease;
+    }
+    .toast strong { display: block; margin-bottom: 2px; }
+    .toast.ok { border-left: 3px solid var(--success); }
+    .toast.err { border-left: 3px solid var(--danger); }
+    .toast.info { border-left: 3px solid var(--primary); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+
+    /* Auth */
+    #view-auth {
+      min-height: 100vh; display: grid; place-items: center;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(59,130,246,.18), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 90%, rgba(34,197,94,.08), transparent),
+        #000;
+    }
+    .auth-card {
+      width: min(420px, 92vw); background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px;
+    }
+    .auth-card h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .auth-card .sub { color: var(--muted-fg); margin-bottom: 20px; font-size: .9rem; }
+    .brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .brand-mark {
+      width: 36px; height: 36px; border-radius: 8px; background: var(--primary);
+      display: grid; place-items: center; font-weight: 700; font-size: .85rem;
+    }
+    .tabs { display: flex; gap: 4px; background: var(--muted); padding: 4px; border-radius: 8px; margin-bottom: 16px; }
+    .tab {
+      flex: 1; border: 0; background: transparent; color: var(--muted-fg);
+      padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500;
+    }
+    .tab.active { background: #2a2a2a; color: var(--fg); }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted-fg); margin-bottom: 4px; }
+    .field input, .field select, .field textarea {
+      width: 100%; background: #0a0a0a; border: 1px solid var(--border); color: var(--fg);
+      border-radius: 6px; padding: 10px 12px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 6px; border: 1px solid var(--border); background: var(--muted);
+      color: var(--fg); padding: 9px 14px; cursor: pointer; font-weight: 500;
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover { background: #2a2a2a; }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.ghost { background: transparent; }
+    .btn.sm { padding: 6px 10px; font-size: .85rem; }
+    .btn.block { width: 100%; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .divider { display: flex; align-items: center; gap: 10px; color: var(--muted-fg); font-size: .75rem; margin: 14px 0; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    /* Shell */
+    #app-shell { display: none; min-height: 100vh; }
+    #app-shell.open { display: flex; }
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0; border-right: 1px solid var(--border);
+      background: #000; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0;
+    }
+    .sidebar-head { padding: 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .sidebar-head strong { font-size: .95rem; }
+    .sidebar-head span { display: block; font-size: .7rem; color: var(--muted-fg); }
+    .nav { padding: 10px 8px; flex: 1; overflow: auto; }
+    .nav-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: #888; padding: 10px 10px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      padding: 9px 10px; border-radius: 6px; border: 0; background: transparent;
+      color: var(--muted-fg); cursor: pointer; margin-bottom: 2px; font-size: .9rem;
+    }
+    .nav-item:hover { background: var(--muted); color: var(--fg); }
+    .nav-item.active { background: rgba(59,130,246,.15); color: #93c5fd; }
+    .nav-item .ico { width: 18px; text-align: center; opacity: .85; font-size: .85rem; }
+    .sidebar-foot { padding: 12px; border-top: 1px solid var(--border); }
+    .user-chip { font-size: .8rem; color: var(--muted-fg); margin-bottom: 8px; }
+    .user-chip b { color: var(--fg); }
+
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 22px; border-bottom: 1px solid var(--border); background: #050505;
+    }
+    .topbar h2 { margin: 0; font-size: 1.15rem; }
+    .topbar p { margin: 2px 0 0; color: var(--muted-fg); font-size: .8rem; }
+    .content { padding: 20px 22px 40px; flex: 1; overflow: auto; }
+    .screen { display: none; }
+    .screen.active { display: block; animation: fade .15s ease; }
+    @keyframes fade { from { opacity: .4; } to { opacity: 1; } }
+
+    .grid { display: grid; gap: 14px; }
+    .g2 { grid-template-columns: repeat(2, 1fr); }
+    .g3 { grid-template-columns: repeat(3, 1fr); }
+    .g4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) {
+      .sidebar { display: none; }
+      .g2, .g3, .g4 { grid-template-columns: 1fr; }
+      #app-shell.open { flex-direction: column; }
+    }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: .95rem; }
+    .card .meta { color: var(--muted-fg); font-size: .8rem; margin-bottom: 10px; }
+    .metric { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+    .metric.sm { font-size: 1.25rem; }
+    .badge {
+      display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+      font-size: .7rem; font-weight: 600; border: 1px solid var(--border); background: #1a1a1a;
+    }
+    .badge.crit { color: #fecaca; border-color: #7f1d1d; background: #450a0a; }
+    .badge.high { color: #fed7aa; border-color: #9a3412; background: #431407; }
+    .badge.med { color: #fef08a; border-color: #854d0e; background: #422006; }
+    .badge.ok { color: #bbf7d0; border-color: #166534; background: #052e16; }
+    .badge.info { color: #bfdbfe; border-color: #1e40af; background: #172554; }
+    .badge.warn { color: #fde68a; border-color: #a16207; background: #422006; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted-fg); font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    .split { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .muted { color: var(--muted-fg); }
+    .mono { font-family: var(--mono); font-size: .8rem; }
+    .hr { height: 1px; background: var(--border); margin: 14px 0; }
+    .progress {
+      height: 6px; background: #1a1a1a; border-radius: 99px; overflow: hidden; margin-top: 8px;
+    }
+    .progress > span { display: block; height: 100%; background: var(--primary); }
+
+    /* Workflow map */
+    .flow-map {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;
+    }
+    .flow-node {
+      border: 1px dashed var(--border); border-radius: 8px; padding: 12px; background: #0a0a0a;
+      cursor: pointer;
+    }
+    .flow-node:hover { border-color: var(--primary); }
+    .flow-node b { display: block; margin-bottom: 4px; font-size: .85rem; }
+    .flow-node span { font-size: .75rem; color: var(--muted-fg); }
+    .pill {
+      display: inline-block; font-size: .65rem; padding: 2px 6px; border-radius: 4px;
+      background: #1e293b; color: #93c5fd; margin-top: 6px; font-family: var(--mono);
+    }
+
+    .alert-item {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 8px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .dot.r { background: var(--danger); }
+    .dot.o { background: #f97316; }
+    .dot.y { background: var(--warning); }
+    .dot.g { background: var(--success); }
+
+    .dialog-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 900;
+      place-items: center;
+    }
+    .dialog-backdrop.open { display: grid; }
+    .dialog {
+      width: min(440px, 92vw); background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .dialog h3 { margin: 0 0 8px; }
+    .banner {
+      border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+      background: #0c1220; margin-bottom: 14px; font-size: .85rem; color: #bfdbfe;
+    }
+    .chart-fake {
+      height: 120px; border-radius: 8px; border: 1px solid var(--border);
+      background:
+        linear-gradient(180deg, transparent 0%, rgba(59,130,246,.08) 100%),
+        repeating-linear-gradient(90deg, transparent, transparent 24px, #1a1a1a 24px, #1a1a1a 25px);
+      position: relative; overflow: hidden;
+    }
+    .chart-fake svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="toast-root"></div>
+
+  <!-- AUTH -->
+  <section id="view-auth">
+    <div class="auth-card">
+      <div class="brand-row">
+        <div class="brand-mark">AI</div>
+        <div>
+          <strong>AI Security Posture Management</strong>
+          <span class="muted" style="display:block;font-size:.75rem">Interactive workflow mockup</span>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-auth-tab="login">Sign In</button>
+        <button class="tab" data-auth-tab="register">Create Account</button>
+      </div>
+      <div id="auth-login" class="stack">
+        <div class="field"><label>Username or email</label><input id="login-user" value="ciso.synthetic" /></div>
+        <div class="field"><label>Password</label><input id="login-pass" type="password" value="Synthetic123!" /></div>
+        <button class="btn primary block" onclick="doLogin('ciso')">Sign In as CISO</button>
+        <div class="divider">or</div>
+        <button class="btn block" onclick="doLogin('analyst')">Synthetic SSO (Analyst)</button>
+        <p class="muted" style="font-size:.75rem;margin:0">Mockup only — no server calls. CISO unlocks Threat Config &amp; Users.</p>
+      </div>
+      <div id="auth-register" class="stack" hidden>
+        <div class="field"><label>Full name</label><input value="Demo Engineer" /></div>
+        <div class="field"><label>Username</label><input value="engineer.demo" /></div>
+        <div class="field"><label>Role</label>
+          <select><option>engineer</option><option>analyst</option><option>compliance_officer</option></select>
+        </div>
+        <div class="field"><label>Password</label><input type="password" value="DemoPass123!" /></div>
+        <button class="btn primary block" onclick="toast('Account created','You can now sign in (mock).','ok'); showAuthTab('login')">Create Account</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP SHELL -->
+  <div id="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="brand-mark">AI</div>
+        <div><strong>AI-SPM</strong><span>Security Posture</span></div>
+      </div>
+      <nav class="nav">
+        <div class="nav-label">Platform</div>
+        <button class="nav-item active" data-nav="dashboard"><span class="ico">▣</span> Dashboard</button>
+        <button class="nav-item" data-nav="assets"><span class="ico">◇</span> AI Assets</button>
+        <button class="nav-item" data-nav="vulns"><span class="ico">⚠</span> Vulnerabilities</button>
+        <button class="nav-item" data-nav="monitoring"><span class="ico">◎</span> Monitoring</button>
+        <button class="nav-item" data-nav="prompts"><span class="ico">⌘</span> Prompt Checks</button>
+        <button class="nav-item" data-nav="health"><span class="ico">♥</span> Health &amp; Governance</button>
+        <button class="nav-item" data-nav="compliance"><span class="ico">☑</span> Compliance</button>
+        <button class="nav-item" data-nav="agentic"><span class="ico">⬡</span> Agentic Workflows</button>
+        <button class="nav-item" data-nav="sysmon"><span class="ico">▤</span> System Monitoring</button>
+        <button class="nav-item ciso-only" data-nav="threat"><span class="ico">⛨</span> Threat Configuration</button>
+        <div class="nav-label">Management</div>
+        <button class="nav-item ciso-only" data-nav="users"><span class="ico">👤</span> User Management</button>
+        <button class="nav-item" data-nav="settings"><span class="ico">⚙</span> Settings</button>
+        <div class="nav-label">Guide</div>
+        <button class="nav-item" data-nav="workflows"><span class="ico">⇄</span> All Workflows</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="user-chip"><b id="who">ciso.synthetic</b><br /><span id="who-role">ciso</span></div>
+        <button class="btn block sm" onclick="logout()">Log out</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="page-title">Dashboard</h2>
+          <p id="page-sub">Overview of AI security posture</p>
+        </div>
+        <div class="row">
+          <button class="btn sm" onclick="go('workflows')">Workflow map</button>
+          <button class="btn sm ghost" onclick="toast('Search','Mock search across assets & alerts','info')">Search</button>
+        </div>
+      </header>
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <section class="screen active" id="screen-dashboard">
+          <div class="banner">Quick Actions call real product flows: scan → vulns, report → governance, audit → prompts, policies → settings.</div>
+          <div class="grid g4" style="margin-bottom:14px">
+            <div class="card"><div class="muted" style="font-size:.75rem">Total Assets</div><div class="metric">7</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Critical Vulns</div><div class="metric" style="color:var(--danger)">2</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Open Alerts</div><div class="metric">4</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Compliance Score</div><div class="metric sm">78%</div></div>
+          </div>
+          <div class="grid g2">
+            <div class="card">
+              <div class="split"><h3>Security Trend</h3><button class="btn sm" onclick="go('monitoring')">View Details</button></div>
+              <div class="chart-fake">
+                <svg viewBox="0 0 400 120" preserveAspectRatio="none">
+                  <polyline fill="none" stroke="#3b82f6" stroke-width="2"
+                    points="0,80 40,70 80,75 120,55 160,60 200,40 240,48 280,35 320,42 360,30 400,28" />
+                </svg>
+              </div>
+            </div>
+            <div class="card">
+              <div class="split"><h3>Quick Actions</h3></div>
+              <div class="stack">
+                <button class="btn" onclick="wfScan()">Run Asset Scan</button>
+                <button class="btn" onclick="go('health'); toast('Navigate','Opened Health & Governance','info')">Generate Report</button>
+                <button class="btn" onclick="go('prompts'); toast('Navigate','Opened Prompt Checks','info')">Security Audit</button>
+                <button class="btn" onclick="go('settings')">Configure Policies</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <div class="split"><h3>Recent Alerts</h3><button class="btn sm" onclick="go('monitoring')">View All</button></div>
+            <div class="alert-item"><span class="dot r"></span><div><b>Jailbreak attempt</b><div class="muted">support-assistant · 2m ago</div></div></div>
+            <div class="alert-item"><span class="dot o"></span><div><b>Prompt injection pattern</b><div class="muted">rag-indexer · 18m ago</div></div></div>
+          </div>
+        </section>
+
+        <!-- ASSETS -->
+        <section class="screen" id="screen-assets">
+          <div class="split" style="margin-bottom:12px">
+            <div class="row">
+              <select id="asset-filter" onchange="toast('Filter', 'type=' + this.value, 'info')">
+                <option value="">All types</option><option>model</option><option>dataset</option><option>endpoint</option>
+              </select>
+              <button class="btn primary sm" onclick="openDialog('dlg-add-asset')">Add Asset</button>
+            </div>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Env</th><th>Risk</th><th>Last scanned</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>support-assistant</td><td>model</td><td>prod</td><td><span class="badge high">High</span></td><td>2h ago</td><td><button class="btn sm" onclick="wfScan('support-assistant')">Scan</button></td></tr>
+                <tr><td>claims-llm</td><td>model</td><td>staging</td><td><span class="badge med">Medium</span></td><td>1d ago</td><td><button class="btn sm" onclick="wfScan('claims-llm')">Scan</button></td></tr>
+                <tr><td>training-corpus-v3</td><td>dataset</td><td>prod</td><td><span class="badge ok">Low</span></td><td>3d ago</td><td><button class="btn sm" onclick="toast('Scan','Dataset integrity check queued','ok')">Check</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- VULNS -->
+        <section class="screen" id="screen-vulns">
+          <div class="grid g4" style="margin-bottom:14px">
+            <div class="card"><div class="muted" style="font-size:.75rem">Critical</div><div class="metric" style="color:var(--danger)">2</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">High</div><div class="metric" style="color:#f97316">2</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Medium</div><div class="metric">0</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Low</div><div class="metric">1</div></div>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Title</th><th>Asset</th><th>Severity</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Missing auth on inference endpoint</td><td>support-assistant</td><td><span class="badge crit">Critical</span></td><td>open</td><td><button class="btn sm" onclick="toast('Triage','Marked for remediation','ok')">Triage</button></td></tr>
+                <tr><td>Training data PII leakage risk</td><td>training-corpus-v3</td><td><span class="badge crit">Critical</span></td><td>open</td><td><button class="btn sm" onclick="go('compliance')">Assess</button></td></tr>
+                <tr><td>Encryption at rest incomplete</td><td>rag-indexer</td><td><span class="badge high">High</span></td><td>investigating</td><td><button class="btn sm" onclick="toast('Ticket','Jira ticket mock created','info')">Create ticket</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- MONITORING -->
+        <section class="screen" id="screen-monitoring">
+          <div class="split" style="margin-bottom:12px">
+            <span class="badge info" id="mon-live">Live</span>
+            <div class="row">
+              <button class="btn sm" id="btn-pause" onclick="toggleMon()">Pause</button>
+              <button class="btn sm" onclick="toast('Refresh','Pulled /api/security-alerts','info')">Refresh</button>
+            </div>
+          </div>
+          <div class="grid g2">
+            <div class="card">
+              <h3>Realtime alerts</h3>
+              <div class="alert-item"><span class="dot r"></span><div><b>jailbreak</b> · support-assistant<div class="muted">severity critical</div></div></div>
+              <div class="alert-item"><span class="dot y"></span><div><b>anomalous_behavior</b> · claims-llm<div class="muted">severity medium</div></div></div>
+            </div>
+            <div class="card">
+              <h3>Feed</h3>
+              <p class="muted" style="font-size:.85rem">Pause/Play only toggles client polling (local UX). Alert data from <span class="mono">/api/security-alerts</span>.</p>
+              <button class="btn" onclick="go('prompts')">Open Prompt Checks</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROMPTS -->
+        <section class="screen" id="screen-prompts">
+          <div class="banner">Classify synthetic prompts → store security alerts → refresh dashboard metrics.</div>
+          <div class="split" style="margin-bottom:12px">
+            <div>
+              <h3 style="margin:0">Prompt checks</h3>
+              <p class="muted" style="margin:4px 0 0;font-size:.85rem">Benign / jailbreak / injection fixtures for support-assistant</p>
+            </div>
+            <button class="btn primary" onclick="wfClassify()">Classify and store alerts</button>
+          </div>
+          <div class="grid g3">
+            <div class="card"><div class="muted" style="font-size:.75rem">Benign</div><div class="metric sm">12</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Jailbreak blocked</div><div class="metric sm" style="color:var(--danger)">5</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Injection</div><div class="metric sm" style="color:#f97316">3</div></div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <table>
+              <thead><tr><th>Prompt</th><th>Label</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">How do I reset my password?</td><td><span class="badge ok">benign</span></td><td>allow</td></tr>
+                <tr><td class="mono">Ignore previous instructions…</td><td><span class="badge crit">jailbreak</span></td><td>block</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- HEALTH -->
+        <section class="screen" id="screen-health">
+          <div class="banner">Resident agent every 15m (Practical Fast Math &lt;100ms). Async OpenRouter GDPR/NIST narratives.</div>
+          <div class="grid g2">
+            <div class="card">
+              <h3>Resident agent</h3>
+              <p class="meta">Status: running · last cycle within budget</p>
+              <div class="row">
+                <span class="badge ok">within budget</span>
+                <span class="badge info">IF + LOF + KS drift</span>
+              </div>
+              <div class="hr"></div>
+              <button class="btn primary" onclick="wfRunNow()">Run now</button>
+            </div>
+            <div class="card">
+              <h3>Async governance</h3>
+              <p class="meta">gpt-4o-mini via OpenRouter · queued reports</p>
+              <button class="btn primary" onclick="wfGovReport()">Generate GDPR / NIST report</button>
+              <div id="gov-queue" class="muted" style="margin-top:12px;font-size:.85rem">No new reports in this session.</div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <h3>Monitoring cycles</h3>
+            <table>
+              <thead><tr><th>ID</th><th>Trigger</th><th>Budget</th><th>Quality score</th></tr></thead>
+              <tbody id="cycle-rows">
+                <tr><td class="mono">#12</td><td>manual</td><td><span class="badge ok">42ms</span></td><td>0.91</td></tr>
+                <tr><td class="mono">#11</td><td>scheduled</td><td><span class="badge ok">38ms</span></td><td>0.89</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- COMPLIANCE -->
+        <section class="screen" id="screen-compliance">
+          <div class="split" style="margin-bottom:12px">
+            <div class="row">
+              <button class="btn sm" onclick="wfExport()">Export Report</button>
+              <button class="btn primary sm" onclick="openDialog('dlg-framework')">Add Framework</button>
+            </div>
+          </div>
+          <div class="grid g2">
+            <div class="card">
+              <h3>NIST AI RMF</h3>
+              <div class="metric sm">82%</div>
+              <div class="progress"><span style="width:82%"></span></div>
+            </div>
+            <div class="card">
+              <h3>GDPR</h3>
+              <div class="metric sm">74%</div>
+              <div class="progress"><span style="width:74%"></span></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <h3>Actions</h3>
+            <div class="stack">
+              <button class="btn" onclick="go('health'); toast('Navigate','Generate narrative via OpenRouter queue','info')">Generate Compliance Report</button>
+              <button class="btn" onclick="openDialog('dlg-assessment')">Schedule Assessment</button>
+              <button class="btn" onclick="go('settings')">Policy Management</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- AGENTIC -->
+        <section class="screen" id="screen-agentic">
+          <div class="split" style="margin-bottom:12px">
+            <p class="muted" style="margin:0;font-size:.85rem">Catalog from fixtures · Create Agent → POST /api/agentic/agents</p>
+            <button class="btn primary" onclick="wfCreateAgent()">Create Agent</button>
+          </div>
+          <div class="grid g3">
+            <div class="card">
+              <div class="split"><h3>Data Processor</h3><span class="badge ok">active</span></div>
+              <p class="meta">supervised · high</p>
+              <div class="row">
+                <button class="btn sm" onclick="toast('Deploy','Agent deploy mock','ok')">Deploy</button>
+                <button class="btn sm" onclick="toast('Suspend','Agent suspended','info')">Suspend</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="split"><h3>Threat Hunter</h3><span class="badge warn">suspended</span></div>
+              <p class="meta">autonomous · critical</p>
+              <button class="btn sm" onclick="toast('Resume','Agent resumed','ok')">Resume</button>
+            </div>
+            <div class="card">
+              <div class="split"><h3>MCP Context</h3><span class="badge info">confidential</span></div>
+              <p class="meta">document context · audit trail on</p>
+              <button class="btn sm" onclick="toast('Validate','MCP context validated','ok')">Validate</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SYSTEM MON -->
+        <section class="screen" id="screen-sysmon">
+          <div class="split" style="margin-bottom:12px">
+            <div class="row">
+              <span class="badge ok" id="sys-status">HEALTHY</span>
+              <span class="muted" style="font-size:.8rem">from /api/monitoring/health</span>
+            </div>
+            <div class="row">
+              <button class="btn sm" id="btn-auto" onclick="toggleAuto()">Auto Refresh</button>
+              <button class="btn sm" onclick="wfSysRefresh()">Refresh</button>
+            </div>
+          </div>
+          <div class="grid g4" style="margin-bottom:14px">
+            <div class="card"><div class="muted" style="font-size:.75rem">System Status</div><div class="metric sm">healthy</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Uptime</div><div class="metric sm">2h 14m</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Alerts</div><div class="metric sm">1</div></div>
+            <div class="card"><div class="muted" style="font-size:.75rem">Components</div><div class="metric sm">9/10</div></div>
+          </div>
+          <div class="grid g3">
+            <div class="card"><h3>database</h3><span class="badge ok">healthy</span><p class="meta">3ms</p></div>
+            <div class="card"><h3>ai-scanner</h3><span class="badge ok">healthy</span><p class="meta">:8001</p></div>
+            <div class="card"><h3>redis</h3><span class="badge warn">degraded</span><p class="meta">not_configured</p>
+              <button class="btn sm" onclick="toast('Acknowledged','Alert redis degraded','ok')">Acknowledge</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- THREAT -->
+        <section class="screen" id="screen-threat">
+          <div class="split" style="margin-bottom:12px">
+            <p class="muted" style="margin:0;font-size:.85rem">CISO only · threat-detection-config.json</p>
+            <button class="btn sm" onclick="toast('Reload','Config reloaded from disk','ok')">Reload Config</button>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Threat</th><th>Enabled</th><th>Threshold</th><th></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>prompt_injection</td>
+                  <td><input type="checkbox" checked onchange="toast('Status','prompt_injection '+(this.checked?'enabled':'disabled'),'info')" /></td>
+                  <td><input type="number" value="0.72" style="width:80px;background:#0a0a0a;border:1px solid var(--border);color:var(--fg);padding:4px 6px;border-radius:4px" /></td>
+                  <td><button class="btn sm" onclick="toast('Saved','Thresholds updated','ok')">Save Changes</button></td>
+                </tr>
+                <tr>
+                  <td>data_poisoning</td>
+                  <td><input type="checkbox" checked onchange="toast('Status','data_poisoning toggled','info')" /></td>
+                  <td><input type="number" value="0.65" style="width:80px;background:#0a0a0a;border:1px solid var(--border);color:var(--fg);padding:4px 6px;border-radius:4px" /></td>
+                  <td><button class="btn sm" onclick="toast('Saved','Thresholds updated','ok')">Save Changes</button></td>
+                </tr>
+                <tr>
+                  <td>model_evasion</td>
+                  <td><input type="checkbox" onchange="toast('Status','model_evasion toggled','info')" /></td>
+                  <td><input type="number" value="0.8" style="width:80px;background:#0a0a0a;border:1px solid var(--border);color:var(--fg);padding:4px 6px;border-radius:4px" /></td>
+                  <td><button class="btn sm" onclick="toast('Saved','Thresholds updated','ok')">Save Changes</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- USERS -->
+        <section class="screen" id="screen-users">
+          <div class="card">
+            <table>
+              <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Active</th></tr></thead>
+              <tbody>
+                <tr><td>ciso.synthetic</td><td>ciso.synthetic@aispm.local</td><td><span class="badge info">ciso</span></td><td><span class="badge ok">yes</span></td></tr>
+                <tr><td>analyst.synthetic</td><td>analyst.synthetic@aispm.local</td><td><span class="badge">analyst</span></td><td><span class="badge ok">yes</span></td></tr>
+                <tr><td>engineer.synthetic</td><td>engineer.synthetic@aispm.local</td><td><span class="badge">engineer</span></td><td><span class="badge ok">yes</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="screen" id="screen-settings">
+          <div class="grid g2">
+            <div class="card">
+              <h3>Platform status</h3>
+              <p class="meta">Synthetic fixtures · OpenRouter · resident agent</p>
+              <ul class="muted" style="font-size:.85rem;padding-left:18px">
+                <li>SYNTHETIC_FIXTURES: on</li>
+                <li>OPENROUTER_API_KEY: configured</li>
+                <li>Governance model: gpt-4o-mini</li>
+                <li>Resident interval: 15m</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Governance policies</h3>
+              <div class="alert-item"><span class="dot g"></span><div><b>Data retention</b><div class="muted">90 days · enforced</div></div></div>
+              <div class="alert-item"><span class="dot g"></span><div><b>Prompt blocklist</b><div class="muted">jailbreak patterns · enforced</div></div></div>
+              <button class="btn" onclick="toast('Policy','Policy editor mock saved','ok')">Save policy changes</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ALL WORKFLOWS -->
+        <section class="screen" id="screen-workflows">
+          <div class="banner">Click any node to jump into that workflow. Arrows describe the live product path.</div>
+          <div class="flow-map">
+            <div class="flow-node" onclick="go('dashboard')"><b>1. Authenticate</b><span>Local CISO login or Synthetic SSO</span><div class="pill">POST /api/login · /api/auth/sso/fixture</div></div>
+            <div class="flow-node" onclick="go('dashboard')"><b>2. Dashboard</b><span>Metrics, trend, alerts, quick actions</span><div class="pill">GET /api/dashboard/*</div></div>
+            <div class="flow-node" onclick="wfScan()"><b>3. Asset scan</b><span>Scan model → vulnerabilities</span><div class="pill">POST /api/ai-scanner/scan</div></div>
+            <div class="flow-node" onclick="go('assets')"><b>4. Inventory</b><span>List / filter / add AI assets</span><div class="pill">GET|POST /api/ai-assets</div></div>
+            <div class="flow-node" onclick="go('vulns')"><b>5. Vuln triage</b><span>Stats + open findings</span><div class="pill">GET /api/vulnerabilities</div></div>
+            <div class="flow-node" onclick="go('monitoring')"><b>6. Live monitoring</b><span>Alert feed · pause polling</span><div class="pill">GET /api/security-alerts</div></div>
+            <div class="flow-node" onclick="wfClassify()"><b>7. Prompt classify</b><span>Jailbreak / benign → alerts</span><div class="pill">POST /api/llm/classifications</div></div>
+            <div class="flow-node" onclick="wfRunNow()"><b>8. Fast math cycle</b><span>IF + LOF + KS &lt;100ms</span><div class="pill">POST /api/governance/health/run-now</div></div>
+            <div class="flow-node" onclick="wfGovReport()"><b>9. Async governance</b><span>GDPR / NIST via OpenRouter</span><div class="pill">POST /api/governance/reports</div></div>
+            <div class="flow-node" onclick="go('compliance')"><b>10. Compliance</b><span>Frameworks, assessments, export</span><div class="pill">/api/compliance/*</div></div>
+            <div class="flow-node" onclick="wfCreateAgent()"><b>11. Agentic agent</b><span>Register supervised agent</span><div class="pill">POST /api/agentic/agents</div></div>
+            <div class="flow-node" onclick="wfSysRefresh()"><b>12. System health</b><span>Components + performance</span><div class="pill">GET /api/monitoring/health</div></div>
+            <div class="flow-node" onclick="go('threat')"><b>13. Threat config</b><span>Enable threats · thresholds · reload</span><div class="pill">/api/threat-config/*</div></div>
+            <div class="flow-node" onclick="go('users')"><b>14. Users</b><span>CISO user directory</span><div class="pill">GET /api/users</div></div>
+            <div class="flow-node" onclick="go('settings')"><b>15. Settings</b><span>Fixtures, OpenRouter, policies</span><div class="pill">GET /api/settings/status</div></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <h3>Cross-page chains</h3>
+            <ol class="muted" style="font-size:.9rem;line-height:1.7">
+              <li><b>Scan chain:</b> Dashboard → Run Asset Scan → toast → Vulnerabilities</li>
+              <li><b>Audit chain:</b> Dashboard → Security Audit → Prompt Checks → Classify → alerts</li>
+              <li><b>Report chain:</b> Dashboard / Compliance → Health &amp; Governance → Generate GDPR/NIST</li>
+              <li><b>Policy chain:</b> Dashboard / Compliance → Settings → policies</li>
+              <li><b>Resident loop:</b> Health Run now → cycle row → within budget → optional async report</li>
+            </ol>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialogs -->
+  <div class="dialog-backdrop" id="dlg-add-asset">
+    <div class="dialog">
+      <h3>Add Asset</h3>
+      <div class="field"><label>Name</label><input id="new-asset-name" value="new-model-endpoint" /></div>
+      <div class="field"><label>Type</label><select><option>model</option><option>dataset</option><option>endpoint</option></select></div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="closeDialogs()">Cancel</button>
+        <button class="btn primary" onclick="toast('Created','Asset registered (mock)','ok'); closeDialogs()">Create Asset</button>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-backdrop" id="dlg-framework">
+    <div class="dialog">
+      <h3>Add Framework</h3>
+      <div class="field"><label>Name</label><input value="ISO/IEC 42001" /></div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="closeDialogs()">Cancel</button>
+        <button class="btn primary" onclick="toast('Created','Framework added','ok'); closeDialogs()">Create Framework</button>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-backdrop" id="dlg-assessment">
+    <div class="dialog">
+      <h3>Schedule Assessment</h3>
+      <div class="field"><label>Framework</label><select><option>NIST AI RMF</option><option>GDPR</option></select></div>
+      <div class="field"><label>Asset</label><select><option>support-assistant</option><option>claims-llm</option></select></div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="closeDialogs()">Cancel</button>
+        <button class="btn primary" onclick="toast('Scheduled','Assessment queued','ok'); closeDialogs()">Create Assessment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const titles = {
+      dashboard: ["Dashboard", "Overview of AI security posture"],
+      assets: ["AI Assets", "Inventory models, datasets, and endpoints"],
+      vulns: ["Vulnerabilities", "Findings from scanners and integrity checks"],
+      monitoring: ["Monitoring", "Realtime security alerts"],
+      prompts: ["Prompt Checks", "Classify prompts and store alerts"],
+      health: ["Health & Governance", "Resident agent + async compliance reports"],
+      compliance: ["Compliance", "Frameworks, assessments, and exports"],
+      agentic: ["Agentic Workflows", "Agents, workflows, and MCP contexts"],
+      sysmon: ["System Monitoring", "Platform component health"],
+      threat: ["Threat Configuration", "Enable threats and tune thresholds"],
+      users: ["User Management", "Directory of platform users"],
+      settings: ["Settings", "Fixtures, OpenRouter, governance policies"],
+      workflows: ["All Workflows", "Interactive map of every product path"],
+    };
+
+    let role = "ciso";
+    let monLive = true;
+    let autoRefresh = true;
+    let cycleId = 12;
+
+    function toast(title, detail, kind = "info") {
+      const root = document.getElementById("toast-root");
+      const el = document.createElement("div");
+      el.className = "toast " + kind;
+      el.innerHTML = "<strong>" + title + "</strong><span class='muted' style='font-size:.8rem'>" + detail + "</span>";
+      root.appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    function showAuthTab(name) {
+      document.querySelectorAll("[data-auth-tab]").forEach((t) => t.classList.toggle("active", t.dataset.authTab === name));
+      document.getElementById("auth-login").hidden = name !== "login";
+      document.getElementById("auth-register").hidden = name !== "register";
+    }
+    document.querySelectorAll("[data-auth-tab]").forEach((t) => t.addEventListener("click", () => showAuthTab(t.dataset.authTab)));
+
+    function doLogin(r) {
+      role = r;
+      document.getElementById("view-auth").style.display = "none";
+      document.getElementById("app-shell").classList.add("open");
+      document.getElementById("who").textContent = r === "ciso" ? "ciso.synthetic" : "analyst.synthetic";
+      document.getElementById("who-role").textContent = r;
+      document.querySelectorAll(".ciso-only").forEach((el) => { el.style.display = r === "ciso" ? "" : "none"; });
+      toast("Signed in", "Session as " + r, "ok");
+      go("dashboard");
+    }
+
+    function logout() {
+      document.getElementById("app-shell").classList.remove("open");
+      document.getElementById("view-auth").style.display = "";
+      toast("Logged out", "Session cleared", "info");
+    }
+
+    function go(id) {
+      if ((id === "threat" || id === "users") && role !== "ciso") {
+        toast("Forbidden", "CISO role required", "err");
+        return;
+      }
+      document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+      document.getElementById("screen-" + id).classList.add("active");
+      document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.dataset.nav === id));
+      const t = titles[id] || [id, ""];
+      document.getElementById("page-title").textContent = t[0];
+      document.getElementById("page-sub").textContent = t[1];
+    }
+
+    document.querySelectorAll(".nav-item").forEach((n) => n.addEventListener("click", () => go(n.dataset.nav)));
+
+    function openDialog(id) { document.getElementById(id).classList.add("open"); }
+    function closeDialogs() { document.querySelectorAll(".dialog-backdrop").forEach((d) => d.classList.remove("open")); }
+    document.querySelectorAll(".dialog-backdrop").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) closeDialogs(); }));
+
+    function wfScan(name) {
+      name = name || "support-assistant";
+      toast("Asset scan started", "Scanning " + name + "…", "ok");
+      setTimeout(() => { go("vulns"); toast("Scan complete", "Findings available on Vulnerabilities", "ok"); }, 700);
+    }
+    function wfClassify() {
+      toast("Classifier", "POST /api/llm/classifications", "info");
+      setTimeout(() => toast("Stored alerts", "Blocked jailbreak + injection samples", "ok"), 500);
+    }
+    function wfRunNow() {
+      cycleId += 1;
+      const ms = 30 + Math.floor(Math.random() * 40);
+      toast("Monitoring cycle finished", "within budget · " + ms + "ms", "ok");
+      const row = document.createElement("tr");
+      row.innerHTML = "<td class='mono'>#" + cycleId + "</td><td>manual</td><td><span class='badge ok'>" + ms + "ms</span></td><td>0.9" + (cycleId % 10) + "</td>";
+      document.getElementById("cycle-rows").prepend(row);
+      go("health");
+    }
+    function wfGovReport() {
+      toast("Report queued", "GDPR + NIST AI RMF via OpenRouter", "ok");
+      document.getElementById("gov-queue").textContent = "Report #" + (10 + cycleId) + " queued · status: processing → complete";
+      go("health");
+    }
+    function wfExport() {
+      toast("Export ready", "Compliance overview downloaded as JSON (mock)", "ok");
+    }
+    function wfCreateAgent() {
+      toast("Agent registered", "Created agent " + crypto.randomUUID().slice(0, 8), "ok");
+      go("agentic");
+    }
+    function wfSysRefresh() {
+      toast("Refreshed", "Health + performance re-fetched", "info");
+      document.getElementById("sys-status").textContent = "HEALTHY";
+      go("sysmon");
+    }
+    function toggleMon() {
+      monLive = !monLive;
+      document.getElementById("mon-live").textContent = monLive ? "Live" : "Paused";
+      document.getElementById("btn-pause").textContent = monLive ? "Pause" : "Play";
+      toast(monLive ? "Live" : "Paused", "Client polling " + (monLive ? "resumed" : "stopped"), "info");
+    }
+    function toggleAuto() {
+      autoRefresh = !autoRefresh;
+      document.getElementById("btn-auto").classList.toggle("primary", autoRefresh);
+      toast("Auto Refresh", autoRefresh ? "enabled (30s)" : "disabled", "info");
+    }
+  </script>
+</body>
+</html>

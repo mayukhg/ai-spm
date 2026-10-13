@@ -17,6 +17,7 @@ import AgenticWorkflows from "@/pages/AgenticWorkflows";
 import SystemMonitoring from "@/pages/SystemMonitoring";
 import ThreatConfiguration from "@/pages/ThreatConfiguration";
 import PromptChecks from "@/pages/prompt-checks";
+import HealthGovernance from "@/pages/health-governance";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <ProtectedRoute path="/vulnerabilities" component={Vulnerabilities} />
       <ProtectedRoute path="/monitoring" component={Monitoring} />
       <ProtectedRoute path="/prompt-checks" component={PromptChecks} />
+      <ProtectedRoute path="/health-governance" component={HealthGovernance} />
       <ProtectedRoute path="/compliance" component={Compliance} />
       <ProtectedRoute path="/agentic" component={AgenticWorkflows} />
       <ProtectedRoute path="/system-monitoring" component={SystemMonitoring} />

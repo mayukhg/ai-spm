@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   Bot, 
   Play, 
@@ -58,6 +60,9 @@ interface MCPContext {
 
 export default function AgenticWorkflows() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: catalog } = useQuery<{
     agents: Agent[];
     workflowExecutions: WorkflowExecution[];
@@ -68,6 +73,41 @@ export default function AgenticWorkflows() {
   const agents = catalog?.agents ?? [];
   const workflowExecutions = catalog?.workflowExecutions ?? [];
   const mcpContexts = catalog?.mcpContexts ?? [];
+
+  const createAgent = async () => {
+    setCreating(true);
+    try {
+      const response = await apiRequest("POST", "/api/agentic/agents", {
+        name: `Synthetic Agent ${new Date().toISOString().slice(11, 19)}`,
+        type: "supervised",
+        capabilities: ["monitoring", "analysis"],
+        securityLevel: "high",
+        maxResourceUsage: { cpu: 1, memory: 512, networkBandwidth: 100 },
+        accessPolicies: [
+          {
+            resource: "ai-assets",
+            permissions: ["read"],
+            conditions: [{ field: "environment", operator: "equals", value: "synthetic" }],
+          },
+        ],
+        complianceRequirements: ["NIST AI RMF", "GDPR"],
+      });
+      const body = await response.json();
+      toast({
+        title: "Agent registered",
+        description: body.agentId ? `Created agent ${body.agentId}` : body.message || "Agent created",
+      });
+      await queryClient.invalidateQueries({ queryKey: ["/api/agentic/catalog"] });
+    } catch (error) {
+      toast({
+        title: "Create agent failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,9 +149,9 @@ export default function AgenticWorkflows() {
             Manage agent-based workflows with comprehensive security controls and MCP integration
           </p>
         </div>
-        <Button>
+        <Button onClick={createAgent} disabled={creating}>
           <Bot className="w-4 h-4 mr-2" />
-          Create Agent
+          {creating ? "Creating…" : "Create Agent"}
         </Button>
       </div>
 

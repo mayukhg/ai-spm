@@ -1,91 +1,105 @@
-# AI Security Posture Management (AI-SPM) Platform
+# AI Security Posture Management (AI-SPM)
 
-A comprehensive enterprise-grade security solution designed to manage and monitor AI/ML assets throughout their lifecycle. This platform provides comprehensive security governance for AI systems from development to production deployment, featuring advanced authentication, real-time security monitoring, AI/ML specific security controls, automated privacy governance, sophisticated adversarial attack detection, automated compliance workflows, and enterprise-grade data quality monitoring with anomaly detection.
+Dashboard and API for inventorying AI assets, scoring security and data-quality risks, and producing compliance narratives. Local development runs a Node/Express + React app against Postgres, optional Python microservices, and synthetic fixtures. Real-time pipeline checks use classic statistics and ML (Practical Fast Math). Large language models are used only for asynchronous GDPR / NIST report writing via OpenRouter.
 
-## Key Features
+## What works locally today
 
-### Advanced Authentication & Authorization
-- **Multi-Factor Authentication**: OAuth 2.0/OpenID Connect, SAML, and FIDO2/WebAuthn support
-- **Enterprise SSO Integration**: Seamless integration with enterprise identity providers
-- **Hardware Security Keys**: FIDO2/WebAuthn for passwordless authentication
-- **API Key Management**: Secure service-to-service authentication with scoped permissions
-- **JWT Token Validation**: Service mesh integrated token validation with automatic refresh
+| Area | Behavior |
+| --- | --- |
+| App shell | Node gateway serves React UI + API (default **PORT=5050** on macOS to avoid AirPlay on 5000) |
+| Auth | Local session login; synthetic users from seed; optional fixture SSO when `SYNTHETIC_FIXTURES=true` |
+| Inventory | AI assets, vulnerabilities, security alerts, compliance scores, posture trend from Postgres |
+| Model / dataset checks | Model-card findings, demographic parity, quality, KS drift — driven by `fixtures/synthetic` |
+| Prompt security | Local phrase/token classifier for prompt injection and jailbreak (`/prompt-checks`) |
+| Continuous health | Resident agent every **15 minutes** + **Run now**: six quality dimensions, KS drift, Isolation Forest, LOF (`/health-governance`) |
+| Async governance | OpenRouter `openai/gpt-4o-mini` synthesizes GDPR / NIST markdown when `OPENROUTER_API_KEY` is set |
+| Theme | Black high-contrast UI |
+| Regression | `npm run test:regression` (unit + API + Puppeteer headless UI) |
 
-### Enhanced Security Monitoring
-- **Real-time Security Event Correlation**: Advanced pattern detection and behavioral analytics
-- **Automated Incident Response**: Configurable workflows for threat remediation
-- **SIEM Integration**: Native connectivity to Splunk, IBM QRadar, and other security platforms
-- **Threat Intelligence Integration**: Automated IOC matching and threat hunting
-- **Behavioral Analytics**: Machine learning-based anomaly detection for user and system behavior
+Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEALTH_GOVERNANCE.md). Latest regression results: [`docs/REGRESSION_VALIDATION_REPORT.md`](docs/REGRESSION_VALIDATION_REPORT.md).
 
-### Advanced AI/ML Security Features
-- **Model Versioning & Lineage**: Complete tracking of ML model lifecycle and dependencies
-- **Automated Bias Detection**: Comprehensive fairness analysis with demographic parity and equalized odds
-- **Federated Learning Security**: Monitoring and validation for distributed ML training
-- **ML Pipeline Security Scanning**: Automated vulnerability assessment of ML workflows
-- **AI Explainability Tools**: LIME, SHAP integration for model interpretability and compliance
+## Architecture rule
 
-### Real-Time Data Quality Monitoring
-- **Comprehensive Quality Assessment**: Automated monitoring of completeness, accuracy, consistency, validity, uniqueness, and freshness
-- **Data Drift Detection**: Statistical analysis using Kolmogorov-Smirnov, Chi-square, and Wasserstein distance tests
-- **Advanced Anomaly Detection**: Ensemble methods combining Isolation Forest, LOF, DBSCAN, and statistical outlier detection
-- **Real-Time Alerting**: Configurable thresholds with multi-channel notifications for critical data integrity issues
-- **Automated Quality Scoring**: Weighted quality metrics with trend analysis and predictive insights
+```
+Realtime monitoring  →  Practical Fast Math only  (target <100ms; no LLM)
+Async governance     →  OpenRouter LLM            (natural-language compliance docs)
+```
 
-### Advanced Adversarial Attack Detection
-- **Data Poisoning Protection**: Real-time detection of malicious training data with statistical analysis and gradient monitoring
-- **Model Evasion Defense**: Automated detection of FGSM, PGD, C&W, and DeepFool attacks with instant input blocking
-- **Privacy Attack Prevention**: Membership and attribute inference attack detection with differential privacy integration
-- **Automated Response System**: Real-time threat blocking, asset quarantine, and multi-channel alerting
+## Key capabilities (implemented)
 
-### Automated Compliance Assessment
-- **Framework Support**: NIST AI RMF, EU AI Act, and GDPR compliance with automated evidence collection
-- **Multi-Format Reporting**: Professional PDF, Excel, HTML, and JSON compliance reports
-- **Gap Analysis**: Automated compliance gap identification with remediation recommendations
-- **Evidence Validation**: Automated integrity checking and audit trail maintenance
+### Authentication
+- Passport local sessions (scrypt password hashes)
+- Roles: `ciso`, `analyst`, `engineer`, `compliance_officer`
+- Synthetic SSO fixtures (OAuth / SAML / WebAuthn JSON) when `SYNTHETIC_FIXTURES=true`
+- Live OAuth / SAML / WebAuthn IdP wiring exists in code but requires real provider env vars
 
-### Data Privacy & Governance
-- **Data Lineage Tracking**: Complete visibility into AI workflow data dependencies
-- **Automated PII Detection**: Advanced classification with confidence scoring
-- **Data Retention Policy Enforcement**: Automated lifecycle management with compliance tracking
-- **GDPR/CCPA Compliance Automation**: Built-in privacy request handling and consent management
-- **Differential Privacy Implementation**: Privacy-preserving analytics and model training
+### AI asset security
+- Asset inventory (models, datasets, pipelines, APIs)
+- Model-card declared findings + demographic-parity bias check on scan
+- Prompt injection / jailbreak scoring with token spans (local classifier, not an LLM)
+- Adversarial test endpoints return planted poisoning / evasion / membership / attribute fixture results
 
-### Enterprise Architecture
-- **Service Mesh Security**: Istio-based zero-trust architecture with automatic mTLS
-- **Microservices Integration**: Specialized Python services for AI security tasks
-- **Cloud-Native Deployment**: Kubernetes-ready with comprehensive observability
-- **High Availability**: Multi-region deployment with automated failover
+### Continuous health (Practical Fast Math)
+- Completeness, accuracy, consistency, validity, uniqueness, freshness
+- Kolmogorov–Smirnov feature drift on `amount`
+- Isolation Forest **and** Local Outlier Factor anomaly scores
+- Resident agent timer + manual Run now; cycle history in `monitoring_cycles`
+
+### Compliance & governance
+- Stored NIST / GDPR assessment scores on the dashboard
+- On-demand NIST evidence check (model card present / processing record absent)
+- Async OpenRouter reports stored in `governance_reports` and shown in the UI
+- SIEM / Wiz connectors run only when configured; otherwise Wiz can replay a fixture
+
+### Microservices (optional)
+- AI scanner `:8001`, data integrity `:8002`, Wiz integration `:8003`, compliance engine `:8004`
+- Gateway prefers `AI_SCANNER_URL`, `DATA_INTEGRITY_URL`, `WIZ_INTEGRATION_URL`, `COMPLIANCE_ENGINE_URL`
+
+## Quick start
+
+```bash
+# 1) Env — copy example, set DATABASE_URL, SESSION_SECRET, PORT=5050
+cp .env.example .env
+# Add OPENROUTER_API_KEY=... for async GDPR/NIST reports
+
+# 2) Postgres + seed
+npm install
+DATABASE_URL=... npx tsx scripts/seed-synthetic.ts
+
+# 3) Optional Python services (separate terminals)
+PORT=8001 python microservices/ai-scanner/main.py
+PORT=8002 python microservices/data-integrity/main.py
+PORT=8003 python microservices/wiz-integration/main.py
+PORT=8004 python microservices/compliance-engine/main.py
+
+# 4) App
+npm run dev
+# open http://localhost:5050
+# login: ciso.synthetic / Synthetic123!
+```
+
+```bash
+npm run test:regression   # requires the app running on BASE_URL (default :5050)
+```
 
 ## Platform status
 
-The running application is the Node gateway on port 5050, Postgres, and the four Python services. Inventory, session login, compliance scores, and the dashboard trend come from the database. Model-card scans, bias evaluation, dataset checks, and the Wiz replay read `fixtures/synthetic`. Istio and the Kubernetes manifests are deployment packaging and are not part of the local process.
+- **In process locally:** inventory dashboard, session auth, fixture-backed scans/checks, prompt checks, resident fast-math agent, OpenRouter async reports, regression suite.
+- **Configured only when env is set:** live Wiz, Splunk/QRadar/Sentinel, production OAuth/SAML/WebAuthn IdPs.
+- **Not part of the local process:** Istio mTLS and Kubernetes manifests are deployment packaging. SHAP/LIME and live production pipeline gateways are not wired into the resident agent path.
 
-Local checks that read the synthetic fixtures:
+Synthetic fixtures under `fixtures/synthetic/` include model cards, bias CSV, ticket baseline/current/dirty extracts, poisoning/evasion/membership/attribute samples, Wiz sync, SSO fixtures, LLM prompt evals, and the agentic catalog.
 
-- A model-card scan writes the declared finding and a demographic-parity result into `vulnerabilities`.
-- Dataset quality and drift checks write `data_quality_metrics`, `data_drift_metrics`, and `data_integrity_alerts`.
-- Adversarial test calls return the planted sample ids from the fixture files.
-- Wiz sync replays `fixtures/synthetic/wiz-sync.json` when `SYNTHETIC_FIXTURES=true` and no Wiz credentials are set. Without that flag and without credentials, the sync stores nothing.
-- Splunk, QRadar, and Sentinel forward alerts only when their environment variables are set. The settings page shows that state.
+## Hybrid architecture (local vs packaging)
 
-## Hybrid Microservices Architecture with Service Mesh
+### What runs in local development
+- **Node.js API Gateway + Vite React UI** — one process in `npm run dev`
+- **PostgreSQL** — Drizzle schema in `shared/schema.ts`
+- **Python FastAPI services** — optional specialized workers
+- **dotenv** — local `.env` (gitignored); never commit `OPENROUTER_API_KEY`
 
-### Architecture Overview
-The platform implements a modern hybrid microservices architecture with **Istio service mesh** that optimizes for both performance, security, and observability:
-
-- **Node.js API Gateway**: Handles web services, authentication, and data management
-- **Python Microservices**: Specialized services for AI/ML security tasks
-- **React Frontend**: Modern, responsive user interface
-- **PostgreSQL Database**: Centralized data storage with ORM integration
-- **Istio Service Mesh**: Provides mTLS, traffic management, and observability
-
-### Service Mesh Security Features
-- **Automatic mTLS**: All inter-service communication is encrypted and authenticated
-- **Zero Trust Security**: Services communicate only through verified certificates
-- **Authorization Policies**: Fine-grained access control between services
-- **Traffic Encryption**: End-to-end encryption for all service communications
-- **Certificate Management**: Automatic certificate rotation and management
+### Packaging (optional, not required to use the app)
+- Docker Compose / Kubernetes / Istio manifests may exist for mesh-style deployment. They are not required for the local PORT=5050 workflow above.
 
 ### Technology Stack
 
@@ -377,33 +391,33 @@ GET  /health               # Service health check
 - **Helm 3.0+** - Package manager for Kubernetes (optional)
 
 ### Environment Configuration
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (see `.env.example`). Typical local values:
+
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/ai_spm
-PGHOST=localhost
-PGPORT=5432
-PGUSER=your_db_user
-PGPASSWORD=your_db_password
-PGDATABASE=ai_spm
-
-# Authentication
-SESSION_SECRET=your_session_secret_key
-
-# Application
+DATABASE_URL=postgresql://ai_spm_user:ai_spm_secure_password@localhost:5432/ai_spm_db
 NODE_ENV=development
-PORT=5000
+PORT=5050
+CORS_ORIGIN=http://localhost:5050
+SESSION_SECRET=your_session_secret_key_minimum_32_characters
+JWT_SECRET=your_jwt_secret_key_minimum_32_characters
 
-# Microservices Configuration
-AI_SCANNER_URL=http://localhost:8001
-DATA_INTEGRITY_URL=http://localhost:8002
-WIZ_INTEGRATION_URL=http://localhost:8003
-COMPLIANCE_ENGINE_URL=http://localhost:8004
+AI_SCANNER_URL=http://127.0.0.1:8001
+DATA_INTEGRITY_URL=http://127.0.0.1:8002
+WIZ_INTEGRATION_URL=http://127.0.0.1:8003
+COMPLIANCE_ENGINE_URL=http://127.0.0.1:8004
 
-# Wiz Integration (Optional)
-WIZ_CLIENT_ID=your_wiz_client_id
-WIZ_CLIENT_SECRET=your_wiz_client_secret
-WIZ_AUDIENCE=beyond-api
+SYNTHETIC_FIXTURES=true
+RESIDENT_AGENT=true
+
+# Async GDPR/NIST narratives only — never used on the realtime monitor path
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_API_KEY=
+
+# Optional live connectors
+# WIZ_CLIENT_ID=
+# WIZ_CLIENT_SECRET=
+# SPLUNK_ENDPOINT=
+# SPLUNK_TOKEN=
 ```
 
 ### Installation Steps
@@ -1424,37 +1438,15 @@ curl -X GET http://localhost:3000/api/data-quality/monitoring/status
 - Type safety with strict TypeScript configuration
 - Security scanning with automated tools
 
-## 🎯 **Latest Implementation Achievements**
+## Recent changes (aligned with runnable code)
 
-### ✅ **July 2025 Major Release - Enterprise Data Quality Monitoring**
-Successfully deployed comprehensive enterprise-grade data quality monitoring platform with:
-
-**Real-Time Data Quality Assessment**
-- Automated monitoring of 6 core quality metrics (completeness, accuracy, consistency, validity, uniqueness, freshness)
-- Configurable quality thresholds with weighted scoring algorithms
-- Real-time quality trend analysis and predictive insights
-
-**Advanced Data Drift Detection**
-- Statistical analysis using Kolmogorov-Smirnov, Chi-square, and Wasserstein distance tests
-- Distribution shift monitoring for numerical and categorical features
-- Temporal pattern analysis with configurable sensitivity thresholds
-
-**Ensemble Anomaly Detection**
-- Sophisticated anomaly detection combining Isolation Forest, LOF, DBSCAN, and statistical outlier methods
-- Multi-layer anomaly scoring with confidence estimation
-- Pattern-based anomaly detection for temporal and sequential data
-
-**Production-Ready Integration**
-- Complete REST API with 12 endpoints for quality monitoring, anomaly detection, and drift analysis
-- Real-time alerting system with multi-channel notifications (Slack, email, PagerDuty, SMS, webhooks)
-- Automated response system with threat blocking, asset quarantine, and escalation policies
-- Comprehensive audit trails and compliance documentation
-
-**Enterprise Architecture**
-- Extended database schema with 6 new tables for quality metrics, drift detection, and anomaly tracking
-- Orchestrated monitoring architecture with Data Quality Manager coordinating all components
-- Integration with existing adversarial detection and compliance assessment systems
-- Production-grade logging, monitoring, and health check capabilities
+- Synthetic fixtures + seed script drive scans, bias, drift, adversarial tests, Wiz replay, and prompt evals
+- Dashboard metrics and trend charts read stored posture snapshots (not random placeholders)
+- Prompt Checks page: local injection/jailbreak classifier with token highlighting
+- Continuous Health & Governance: resident fast-math agent (IF + LOF + KS + six dimensions) and async OpenRouter reports
+- Black high-contrast UI theme
+- Regression suite: `tests/regression/*` → `npm run test:regression`
+- Docs: `docs/CONTINUOUS_HEALTH_GOVERNANCE.md`, `docs/REGRESSION_VALIDATION_REPORT.md`
 
 ## License
 

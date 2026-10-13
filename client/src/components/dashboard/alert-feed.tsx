@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Clock
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import type { SecurityAlert } from "@shared/schema";
@@ -20,6 +21,8 @@ interface AlertFeedProps {
 }
 
 export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
+  const [, setLocation] = useLocation();
+
   const getAlertIcon = (type: string, severity: string) => {
     if (severity === "critical") {
       return <AlertTriangle className="h-5 w-5 text-red-500" />;
@@ -115,7 +118,7 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Live
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setLocation("/monitoring")}>
             View All
           </Button>
         </div>

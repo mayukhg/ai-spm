@@ -1,51 +1,51 @@
-ticket_id,text,label,amount
-T-DIRTY-0,,billing,100
-T-DIRTY-1,,access,101
-T-DIRTY-2,,shipping,102
-T-DIRTY-3,,billing,103
-T-DIRTY-4,,access,104
-T-DUP,ticket 5,shipping,105
-T-DUP,ticket 6,billing,106
-T-DUP,ticket 7,access,107
-T-DUP,ticket 8,shipping,108
-T-DUP,ticket 9,billing,109
-T-DIRTY-10,ticket 10,not-a-label,110
-T-DIRTY-11,ticket 11,not-a-label,111
-T-DIRTY-12,ticket 12,not-a-label,112
-T-DIRTY-13,ticket 13,not-a-label,113
-T-DIRTY-14,ticket 14,not-a-label,114
-T-DIRTY-15,ticket 15,billing,115
-T-DIRTY-16,ticket 16,access,116
-T-DIRTY-17,ticket 17,shipping,117
-T-DIRTY-18,ticket 18,billing,118
-T-DIRTY-19,ticket 19,access,119
-T-DIRTY-20,ticket 20,shipping,120
-T-DIRTY-21,ticket 21,billing,121
-T-DIRTY-22,ticket 22,access,122
-T-DIRTY-23,ticket 23,shipping,123
-T-DIRTY-24,ticket 24,billing,124
-T-DIRTY-25,ticket 25,access,125
-T-DIRTY-26,ticket 26,shipping,126
-T-DIRTY-27,ticket 27,billing,127
-T-DIRTY-28,ticket 28,access,128
-T-DIRTY-29,ticket 29,shipping,129
-T-DIRTY-30,ticket 30,billing,130
-T-DIRTY-31,ticket 31,access,131
-T-DIRTY-32,ticket 32,shipping,132
-T-DIRTY-33,ticket 33,billing,133
-T-DIRTY-34,ticket 34,access,134
-T-DIRTY-35,ticket 35,shipping,135
-T-DIRTY-36,ticket 36,billing,136
-T-DIRTY-37,ticket 37,access,137
-T-DIRTY-38,ticket 38,shipping,138
-T-DIRTY-39,ticket 39,billing,139
-T-DIRTY-40,ticket 40,access,140
-T-DIRTY-41,ticket 41,shipping,141
-T-DIRTY-42,ticket 42,billing,142
-T-DIRTY-43,ticket 43,access,143
-T-DIRTY-44,ticket 44,shipping,144
-T-DIRTY-45,ticket 45,billing,145
-T-DIRTY-46,ticket 46,access,146
-T-DIRTY-47,ticket 47,shipping,147
-T-DIRTY-48,ticket 48,billing,148
-T-DIRTY-49,ticket 49,access,149
+ticket_id,text,label,amount,timestamp
+T-DIRTY-0,,billing,100,2026-10-13T05:55:36.125Z
+T-DIRTY-1,,access,101,2026-10-13T04:55:36.125Z
+T-DIRTY-2,,shipping,102,2026-10-13T03:55:36.125Z
+T-DIRTY-3,,billing,103,2026-10-13T02:55:36.125Z
+T-DIRTY-4,,access,104,2026-10-13T01:55:36.125Z
+T-DUP,ticket 5,shipping,105,2026-10-13T00:55:36.125Z
+T-DUP,ticket 6,billing,106,2026-10-12T23:55:36.125Z
+T-DUP,ticket 7,access,107,2026-10-12T22:55:36.125Z
+T-DUP,ticket 8,shipping,108,2026-10-12T21:55:36.125Z
+T-DUP,ticket 9,billing,109,2026-10-12T20:55:36.125Z
+T-DIRTY-10,ticket 10,not-a-label,110,2026-10-12T19:55:36.125Z
+T-DIRTY-11,ticket 11,not-a-label,111,2026-10-12T18:55:36.125Z
+T-DIRTY-12,ticket 12,not-a-label,112,2026-10-12T17:55:36.125Z
+T-DIRTY-13,ticket 13,not-a-label,113,2026-10-12T16:55:36.125Z
+T-DIRTY-14,ticket 14,not-a-label,114,2026-10-12T15:55:36.125Z
+T-DIRTY-15,ticket 15,billing,115,2026-10-12T14:55:36.125Z
+T-DIRTY-16,ticket 16,access,116,2026-10-12T13:55:36.125Z
+T-DIRTY-17,ticket 17,shipping,117,2026-10-12T12:55:36.125Z
+T-DIRTY-18,ticket 18,billing,118,2026-10-12T11:55:36.125Z
+T-DIRTY-19,ticket 19,access,119,2026-10-12T10:55:36.125Z
+T-DIRTY-20,ticket 20,shipping,120,2026-10-12T09:55:36.125Z
+T-DIRTY-21,ticket 21,billing,121,2026-10-12T08:55:36.125Z
+T-DIRTY-22,ticket 22,access,122,2026-10-12T07:55:36.125Z
+T-DIRTY-23,ticket 23,shipping,123,2026-10-12T06:55:36.125Z
+T-DIRTY-24,ticket 24,billing,124,2026-10-12T05:55:36.125Z
+T-DIRTY-25,ticket 25,access,125,2026-10-12T04:55:36.125Z
+T-DIRTY-26,ticket 26,shipping,126,2026-10-12T03:55:36.125Z
+T-DIRTY-27,ticket 27,billing,127,2026-10-12T02:55:36.125Z
+T-DIRTY-28,ticket 28,access,128,2026-10-12T01:55:36.125Z
+T-DIRTY-29,ticket 29,shipping,129,2026-10-12T00:55:36.125Z
+T-DIRTY-30,ticket 30,billing,130,2026-10-11T23:55:36.125Z
+T-DIRTY-31,ticket 31,access,131,2026-10-11T22:55:36.125Z
+T-DIRTY-32,ticket 32,shipping,132,2026-10-11T21:55:36.125Z
+T-DIRTY-33,ticket 33,billing,133,2026-10-11T20:55:36.125Z
+T-DIRTY-34,ticket 34,access,134,2026-10-11T19:55:36.125Z
+T-DIRTY-35,ticket 35,shipping,135,2026-10-11T18:55:36.125Z
+T-DIRTY-36,ticket 36,billing,136,2026-10-11T17:55:36.125Z
+T-DIRTY-37,ticket 37,access,137,2026-10-11T16:55:36.125Z
+T-DIRTY-38,ticket 38,shipping,138,2026-10-11T15:55:36.125Z
+T-DIRTY-39,ticket 39,billing,139,2026-10-11T14:55:36.125Z
+T-DIRTY-40,ticket 40,access,140,2026-10-10T05:55:36.125Z
+T-DIRTY-41,ticket 41,shipping,141,2026-10-10T05:55:36.125Z
+T-DIRTY-42,ticket 42,billing,142,2026-10-10T05:55:36.125Z
+T-DIRTY-43,ticket 43,access,143,2026-10-10T05:55:36.125Z
+T-DIRTY-44,ticket 44,shipping,144,2026-10-10T05:55:36.125Z
+T-DIRTY-45,ticket 45,billing,145,2026-10-10T05:55:36.125Z
+T-DIRTY-46,ticket 46,access,146,2026-10-10T05:55:36.125Z
+T-DIRTY-47,ticket 47,shipping,147,2026-10-10T05:55:36.125Z
+T-DIRTY-48,ticket 48,billing,148,2026-10-10T05:55:36.125Z
+T-DIRTY-49,ticket 49,access,149,2026-10-10T05:55:36.125Z

@@ -37,22 +37,28 @@ function write(name: string, contents: string) {
 
 function csvAmounts(fileName: string, mean: number, sd: number, seed: number) {
   const rand = mulberry32(seed);
-  const lines = ["ticket_id,text,label,amount"];
+  const lines = ["ticket_id,text,label,amount,timestamp"];
   const labels = ["billing", "access", "shipping"];
+  const now = Date.now();
   for (let i = 0; i < 100; i += 1) {
-    const amount = gauss(rand, mean, sd).toFixed(2);
-    lines.push(`T-${fileName}-${i},ticket ${i},${labels[i % 3]},${amount}`);
+    // Plant a few extreme outliers so Isolation Forest / LOF have signal
+    const amount = i >= 95 ? (mean * 8 + rand() * 50).toFixed(2) : gauss(rand, mean, sd).toFixed(2);
+    const ageHours = i < 90 ? rand() * 12 : 48 + rand() * 24;
+    const timestamp = new Date(now - ageHours * 3600 * 1000).toISOString();
+    lines.push(`T-${fileName}-${i},ticket ${i},${labels[i % 3]},${amount},${timestamp}`);
   }
   write(fileName, lines.join("\n") + "\n");
 }
 
 function writeDirtyCsv() {
-  const lines = ["ticket_id,text,label,amount"];
+  const lines = ["ticket_id,text,label,amount,timestamp"];
+  const now = Date.now();
   for (let i = 0; i < 50; i += 1) {
     const id = i >= 5 && i < 10 ? "T-DUP" : `T-DIRTY-${i}`;
     const text = i < 5 ? "" : `ticket ${i}`;
     const label = i >= 10 && i < 15 ? "not-a-label" : ["billing", "access", "shipping"][i % 3];
-    lines.push(`${id},${text},${label},${100 + i}`);
+    const timestamp = new Date(now - (i < 40 ? i : 72) * 3600 * 1000).toISOString();
+    lines.push(`${id},${text},${label},${100 + i},${timestamp}`);
   }
   write("ticket-training-set-dirty.csv", lines.join("\n") + "\n");
 }

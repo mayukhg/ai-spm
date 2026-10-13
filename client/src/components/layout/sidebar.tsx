@@ -12,6 +12,7 @@ import {
   Bug, 
   Eye, 
   MessageSquareWarning,
+  HeartPulse,
   Settings, 
   ClipboardCheck, 
   Users,
@@ -52,6 +53,12 @@ const navigationItems = [
     title: "Prompt Checks",
     href: "/prompt-checks",
     icon: MessageSquareWarning,
+    roles: ["ciso", "analyst", "engineer", "compliance_officer"]
+  },
+  {
+    title: "Health & Governance",
+    href: "/health-governance",
+    icon: HeartPulse,
     roles: ["ciso", "analyst", "engineer", "compliance_officer"]
   },
   {

@@ -1,0 +1,219 @@
+{
+  "startedAt": "2026-10-13T06:07:50.504Z",
+  "finishedAt": "2026-10-13T06:08:48.157Z",
+  "baseUrl": "http://127.0.0.1:5050",
+  "results": [
+    {
+      "id": "UNIT-QM-01",
+      "suite": "unit",
+      "name": "Six quality dimensions score clean current extract near 1.0",
+      "status": "passed",
+      "durationMs": 0
+    },
+    {
+      "id": "UNIT-QM-02",
+      "suite": "unit",
+      "name": "Dirty extract fails completeness/uniqueness/validity",
+      "status": "passed",
+      "durationMs": 0
+    },
+    {
+      "id": "UNIT-KS-01",
+      "suite": "unit",
+      "name": "KS drift detects baseline vs current amount shift",
+      "status": "passed",
+      "durationMs": 0
+    },
+    {
+      "id": "UNIT-IF-01",
+      "suite": "unit",
+      "name": "Isolation Forest flags planted high-amount outliers",
+      "status": "passed",
+      "durationMs": 49
+    },
+    {
+      "id": "UNIT-LOF-01",
+      "suite": "unit",
+      "name": "Local Outlier Factor flags planted outliers",
+      "status": "passed",
+      "durationMs": 2
+    },
+    {
+      "id": "UNIT-FM-01",
+      "suite": "unit",
+      "name": "Full fast-math monitor stays under 100ms budget",
+      "status": "passed",
+      "durationMs": 48
+    },
+    {
+      "id": "UNIT-FM-02",
+      "suite": "unit",
+      "name": "Realtime path module does not import OpenRouter",
+      "status": "passed",
+      "durationMs": 0
+    },
+    {
+      "id": "FUNC-CORE-01",
+      "suite": "functional",
+      "name": "Health endpoint returns ok",
+      "status": "passed",
+      "durationMs": 3
+    },
+    {
+      "id": "FUNC-CORE-02",
+      "suite": "functional",
+      "name": "Login accepts synthetic CISO credentials",
+      "status": "passed",
+      "durationMs": 32
+    },
+    {
+      "id": "FUNC-CORE-03",
+      "suite": "functional",
+      "name": "Dashboard metrics include synthetic posture fields",
+      "status": "passed",
+      "durationMs": 7
+    },
+    {
+      "id": "FUNC-CORE-04",
+      "suite": "functional",
+      "name": "Dashboard trend returns stored snapshots",
+      "status": "passed",
+      "durationMs": 3
+    },
+    {
+      "id": "FUNC-LLM-01",
+      "suite": "functional",
+      "name": "Local prompt classifier matches fixture labels",
+      "status": "passed",
+      "durationMs": 1
+    },
+    {
+      "id": "FUNC-LLM-02",
+      "suite": "functional",
+      "name": "GET /api/llm/classifications returns three scored prompts",
+      "status": "passed",
+      "durationMs": 2
+    },
+    {
+      "id": "FUNC-LLM-03",
+      "suite": "functional",
+      "name": "POST /api/llm/classifications stores block alerts",
+      "status": "passed",
+      "durationMs": 15
+    },
+    {
+      "id": "FUNC-HEALTH-01",
+      "suite": "functional",
+      "name": "Resident agent status exposes fast-math methods and no realtime LLM",
+      "status": "passed",
+      "durationMs": 2
+    },
+    {
+      "id": "FUNC-HEALTH-02",
+      "suite": "functional",
+      "name": "Run now completes under 100ms and persists a cycle",
+      "status": "passed",
+      "durationMs": 60
+    },
+    {
+      "id": "FUNC-GOV-01",
+      "suite": "functional",
+      "name": "OpenRouter configuration is reported from env",
+      "status": "passed",
+      "durationMs": 1
+    },
+    {
+      "id": "FUNC-GOV-02",
+      "suite": "functional",
+      "name": "POST /api/governance/reports queues async GDPR/NIST synthesis",
+      "status": "passed",
+      "durationMs": 12142,
+      "details": {
+        "requiresOpenRouter": true
+      }
+    },
+    {
+      "id": "FUNC-CORE-05",
+      "suite": "functional",
+      "name": "Settings status exposes syntheticFixtures",
+      "status": "passed",
+      "durationMs": 7
+    },
+    {
+      "id": "UI-BOOT-01",
+      "suite": "ui",
+      "name": "Headless Chromium launches",
+      "status": "passed",
+      "durationMs": 5919
+    },
+    {
+      "id": "UI-AUTH-01",
+      "suite": "ui",
+      "name": "Auth page renders black theme and sign-in controls",
+      "status": "passed",
+      "durationMs": 899
+    },
+    {
+      "id": "UI-AUTH-02",
+      "suite": "ui",
+      "name": "Synthetic login reaches dashboard",
+      "status": "passed",
+      "durationMs": 31730
+    },
+    {
+      "id": "UI-DASH-01",
+      "suite": "ui",
+      "name": "Dashboard shows metrics and threat alerts",
+      "status": "passed",
+      "durationMs": 2
+    },
+    {
+      "id": "UI-NAV-01",
+      "suite": "ui",
+      "name": "Sidebar includes Prompt Checks and Health & Governance",
+      "status": "passed",
+      "durationMs": 0
+    },
+    {
+      "id": "UI-PROMPT-01",
+      "suite": "ui",
+      "name": "Prompt Checks page shows three classifications",
+      "status": "passed",
+      "durationMs": 620
+    },
+    {
+      "id": "UI-HEALTH-01",
+      "suite": "ui",
+      "name": "Health & Governance shows resident agent and OpenRouter status",
+      "status": "passed",
+      "durationMs": 626
+    },
+    {
+      "id": "UI-HEALTH-02",
+      "suite": "ui",
+      "name": "Run now creates a monitoring cycle row",
+      "status": "passed",
+      "durationMs": 47
+    },
+    {
+      "id": "UI-HEALTH-03",
+      "suite": "ui",
+      "name": "Generate report queues and lists a governance report",
+      "status": "passed",
+      "durationMs": 50
+    },
+    {
+      "id": "UI-THEME-01",
+      "suite": "ui",
+      "name": "Primary pages keep black background",
+      "status": "passed",
+      "durationMs": 3781
+    }
+  ],
+  "summary": {
+    "total": 29,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0
+  }
+}

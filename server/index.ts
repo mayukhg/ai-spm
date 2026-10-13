@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from 'express-session';
 import passport from 'passport';
@@ -11,6 +12,7 @@ import { agenticRoutes } from './routes/agentic-routes';
 import { monitoringRoutes } from './routes/monitoring-routes';
 import { threatConfigRoutes } from './routes/threat-config-routes';
 import complianceRoutes from './routes/compliance-routes';
+import { startResidentAgent } from './governance/resident-agent';
 
 const app = express();
 
@@ -155,6 +157,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   }, () => {
     log(`AI-SPM Platform serving on port ${port}`);
     log(`Security features: Authentication, SIEM, Model Security, Privacy Governance`);
+    log(`Resident agent: Practical Fast Math (15m interval, Isolation Forest + LOF + KS)`);
     
     if (process.env.OAUTH_CLIENT_ID) {
       log(`OAuth 2.0/OpenID Connect enabled`);
@@ -166,6 +169,17 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     
     if (process.env.SPLUNK_ENDPOINT) {
       log(`Splunk SIEM integration enabled`);
+    }
+
+    if (process.env.OPENROUTER_API_KEY) {
+      log(`OpenRouter async governance reports enabled (${process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini"})`);
+    } else {
+      log(`OpenRouter key not set — async GDPR/NIST reports will prompt for OPENROUTER_API_KEY`);
+    }
+
+    // Continuous Automated Health: start the resident monitor after listen
+    if (process.env.RESIDENT_AGENT !== "false") {
+      startResidentAgent();
     }
   });
 })().catch((err) => {
