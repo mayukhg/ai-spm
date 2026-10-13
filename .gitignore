@@ -8,3 +8,9 @@ vite.config.ts.*
 logs/*.log
 logs/.*-audit.json
 tests/regression/artifacts/
+docs/interview/audio/
+docs/interview/frames/
+docs/interview/walk-frames/
+docs/interview/validation/
+docs/interview/assets/
+docs/interview/AI_SPM_PM_Demo_raw.mp4

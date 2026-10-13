@@ -89,6 +89,11 @@ export default function AgenticWorkflows() {
             permissions: ["read"],
             conditions: [{ field: "environment", operator: "equals", value: "synthetic" }],
           },
+          {
+            resource: "personal_data",
+            permissions: ["read"],
+            conditions: [{ field: "purpose", operator: "equals", value: "security_monitoring" }],
+          },
         ],
         complianceRequirements: ["NIST AI RMF", "GDPR"],
       });
