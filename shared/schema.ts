@@ -126,6 +126,17 @@ export const governancePolicies = pgTable("governance_policies", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Daily security posture used by the dashboard trend and month-over-month labels
+export const postureSnapshots = pgTable("posture_snapshots", {
+  id: serial("id").primaryKey(),
+  recordedOn: timestamp("recorded_on").notNull(),
+  securityScore: integer("security_score").notNull(),
+  vulnerabilities: integer("vulnerabilities").notNull(),
+  threats: integer("threats").notNull(),
+  compliance: integer("compliance").notNull(),
+  assetCount: integer("asset_count").notNull(),
+});
+
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),

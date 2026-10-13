@@ -74,9 +74,9 @@ export default function MetricsCards({ metrics, vulnerabilityStats, isLoading }:
             {metrics.totalAssets.toLocaleString()}
           </div>
           <div className="flex items-center mt-2">
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 font-medium">
-              12% from last month
+            <TrendingUp className="h-4 w-4 text-green-400 mr-1" />
+            <span className="text-sm text-green-400 font-medium">
+              {metrics.assetChangePercent}% from last month
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -134,9 +134,9 @@ export default function MetricsCards({ metrics, vulnerabilityStats, isLoading }:
             {compliancePercentage}%
           </div>
           <div className="flex items-center mt-2">
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 font-medium">
-              3% improvement
+            <TrendingUp className="h-4 w-4 text-green-400 mr-1" />
+            <span className="text-sm text-green-400 font-medium">
+              {metrics.complianceChangePercent}% improvement
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">

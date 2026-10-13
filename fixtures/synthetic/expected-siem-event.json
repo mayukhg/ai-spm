@@ -1,0 +1,5 @@
+{
+  "type": "prompt_injection",
+  "severity": "high",
+  "title": "Prompt injection attempt blocked"
+}

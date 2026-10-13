@@ -1,0 +1,1169 @@
+{
+  "samples": [
+    {
+      "id": "clean-0",
+      "features": [
+        0,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-1",
+      "features": [
+        1,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-2",
+      "features": [
+        2,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-3",
+      "features": [
+        3,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-4",
+      "features": [
+        4,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-5",
+      "features": [
+        5,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-6",
+      "features": [
+        6,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-7",
+      "features": [
+        7,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-8",
+      "features": [
+        8,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-9",
+      "features": [
+        9,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-10",
+      "features": [
+        10,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-11",
+      "features": [
+        11,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-12",
+      "features": [
+        12,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-13",
+      "features": [
+        13,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-14",
+      "features": [
+        14,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-15",
+      "features": [
+        15,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-16",
+      "features": [
+        16,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-17",
+      "features": [
+        17,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-18",
+      "features": [
+        18,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-19",
+      "features": [
+        19,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-20",
+      "features": [
+        20,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-21",
+      "features": [
+        21,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-22",
+      "features": [
+        22,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-23",
+      "features": [
+        23,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-24",
+      "features": [
+        24,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-25",
+      "features": [
+        25,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-26",
+      "features": [
+        26,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-27",
+      "features": [
+        27,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-28",
+      "features": [
+        28,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-29",
+      "features": [
+        29,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-30",
+      "features": [
+        30,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-31",
+      "features": [
+        31,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-32",
+      "features": [
+        32,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-33",
+      "features": [
+        33,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-34",
+      "features": [
+        34,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-35",
+      "features": [
+        35,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-36",
+      "features": [
+        36,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-37",
+      "features": [
+        37,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-38",
+      "features": [
+        38,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-39",
+      "features": [
+        39,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-40",
+      "features": [
+        40,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-41",
+      "features": [
+        41,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-42",
+      "features": [
+        42,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-43",
+      "features": [
+        43,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-44",
+      "features": [
+        44,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-45",
+      "features": [
+        45,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-46",
+      "features": [
+        46,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-47",
+      "features": [
+        47,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-48",
+      "features": [
+        48,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-49",
+      "features": [
+        49,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-50",
+      "features": [
+        50,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-51",
+      "features": [
+        51,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-52",
+      "features": [
+        52,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-53",
+      "features": [
+        53,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-54",
+      "features": [
+        54,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-55",
+      "features": [
+        55,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-56",
+      "features": [
+        56,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-57",
+      "features": [
+        57,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-58",
+      "features": [
+        58,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-59",
+      "features": [
+        59,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-60",
+      "features": [
+        60,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-61",
+      "features": [
+        61,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-62",
+      "features": [
+        62,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-63",
+      "features": [
+        63,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-64",
+      "features": [
+        64,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-65",
+      "features": [
+        65,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-66",
+      "features": [
+        66,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-67",
+      "features": [
+        67,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-68",
+      "features": [
+        68,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-69",
+      "features": [
+        69,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-70",
+      "features": [
+        70,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-71",
+      "features": [
+        71,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-72",
+      "features": [
+        72,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-73",
+      "features": [
+        73,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-74",
+      "features": [
+        74,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-75",
+      "features": [
+        75,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-76",
+      "features": [
+        76,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-77",
+      "features": [
+        77,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-78",
+      "features": [
+        78,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-79",
+      "features": [
+        79,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-80",
+      "features": [
+        80,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-81",
+      "features": [
+        81,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-82",
+      "features": [
+        82,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-83",
+      "features": [
+        83,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-84",
+      "features": [
+        84,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-85",
+      "features": [
+        85,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-86",
+      "features": [
+        86,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-87",
+      "features": [
+        87,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-88",
+      "features": [
+        88,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-89",
+      "features": [
+        89,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-90",
+      "features": [
+        90,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-91",
+      "features": [
+        91,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-92",
+      "features": [
+        92,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-93",
+      "features": [
+        93,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-94",
+      "features": [
+        94,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-95",
+      "features": [
+        95,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-96",
+      "features": [
+        96,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-97",
+      "features": [
+        97,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-98",
+      "features": [
+        98,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "clean-99",
+      "features": [
+        99,
+        1,
+        0
+      ],
+      "label": "billing",
+      "planted": false
+    },
+    {
+      "id": "poison-01",
+      "features": [
+        1,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-02",
+      "features": [
+        2,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-03",
+      "features": [
+        3,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-04",
+      "features": [
+        4,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-05",
+      "features": [
+        5,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-06",
+      "features": [
+        6,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-07",
+      "features": [
+        7,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-08",
+      "features": [
+        8,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-09",
+      "features": [
+        9,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-10",
+      "features": [
+        10,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-11",
+      "features": [
+        11,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-12",
+      "features": [
+        12,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-13",
+      "features": [
+        13,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-14",
+      "features": [
+        14,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    },
+    {
+      "id": "poison-15",
+      "features": [
+        15,
+        1,
+        0
+      ],
+      "label": "shipping",
+      "originalLabel": "billing",
+      "planted": true
+    }
+  ]
+}

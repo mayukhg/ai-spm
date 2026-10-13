@@ -5,6 +5,8 @@ export interface DashboardMetrics {
   criticalVulnerabilities: number;
   activeThreats: number;
   complianceScore: number;
+  assetChangePercent: number;
+  complianceChangePercent: number;
 }
 
 export interface VulnerabilityStats {

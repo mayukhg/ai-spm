@@ -1,0 +1,37 @@
+{
+  "clean": {
+    "id": "clean-billing",
+    "features": [
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.1,
+      0.7,
+      0.8,
+      0.15,
+      0.25
+    ],
+    "prediction": "billing",
+    "confidence": 0.91
+  },
+  "perturbed": {
+    "id": "perturbed-billing",
+    "features": [
+      0.25,
+      0.35,
+      0.45,
+      0.55,
+      0.65,
+      0.15,
+      0.75,
+      0.85,
+      0.2,
+      0.3
+    ],
+    "epsilon": 0.05,
+    "prediction": "shipping",
+    "confidence": 0.52
+  }
+}

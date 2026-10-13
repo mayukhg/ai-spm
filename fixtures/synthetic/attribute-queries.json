@@ -1,0 +1,254 @@
+{
+  "queries": [
+    {
+      "id": "attr-0",
+      "age": 50,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-1",
+      "age": 51,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-2",
+      "age": 52,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-3",
+      "age": 53,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-4",
+      "age": 54,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-5",
+      "age": 55,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-6",
+      "age": 56,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-7",
+      "age": 57,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-8",
+      "age": 58,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-9",
+      "age": 59,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-10",
+      "age": 50,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-11",
+      "age": 51,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-12",
+      "age": 52,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-13",
+      "age": 53,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-14",
+      "age": 54,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-15",
+      "age": 55,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-16",
+      "age": 56,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-17",
+      "age": 57,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-18",
+      "age": 58,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-19",
+      "age": 59,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-20",
+      "age": 50,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-21",
+      "age": 51,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-22",
+      "age": 52,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-23",
+      "age": 53,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-24",
+      "age": 54,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-25",
+      "age": 55,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-26",
+      "age": 56,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-27",
+      "age": 57,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-28",
+      "age": 58,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-29",
+      "age": 59,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-30",
+      "age": 50,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-31",
+      "age": 51,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-32",
+      "age": 52,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-33",
+      "age": 53,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-34",
+      "age": 54,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-35",
+      "age": 55,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-36",
+      "age": 56,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-37",
+      "age": 57,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-38",
+      "age": 58,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-39",
+      "age": 59,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-40",
+      "age": 50,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-41",
+      "age": 51,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-42",
+      "age": 52,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-43",
+      "age": 53,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-44",
+      "age": 54,
+      "prediction": "positive"
+    },
+    {
+      "id": "attr-45",
+      "age": 30,
+      "prediction": "negative"
+    },
+    {
+      "id": "attr-46",
+      "age": 30,
+      "prediction": "negative"
+    },
+    {
+      "id": "attr-47",
+      "age": 30,
+      "prediction": "negative"
+    },
+    {
+      "id": "attr-48",
+      "age": 30,
+      "prediction": "negative"
+    },
+    {
+      "id": "attr-49",
+      "age": 30,
+      "prediction": "negative"
+    }
+  ]
+}

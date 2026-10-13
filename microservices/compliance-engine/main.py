@@ -129,9 +129,9 @@ class ComplianceEngine:
             }
         }
     
-    async def run_compliance_assessment(self, request: ComplianceAssessmentRequest) -> ComplianceAssessmentResult:
+    async def run_compliance_assessment(self, request: ComplianceAssessmentRequest, assessment_id: Optional[str] = None) -> ComplianceAssessmentResult:
         """Main compliance assessment orchestrator"""
-        assessment_id = self._generate_assessment_id(request)
+        assessment_id = assessment_id or self._generate_assessment_id(request)
         
         logger.info(f"Starting compliance assessment {assessment_id} for framework {request.framework}")
         
@@ -478,9 +478,8 @@ async def health_check():
 async def start_compliance_assessment(request: ComplianceAssessmentRequest, background_tasks: BackgroundTasks):
     """Start compliance assessment"""
     try:
-        background_tasks.add_task(compliance_engine.run_compliance_assessment, request)
-        
         assessment_id = compliance_engine._generate_assessment_id(request)
+        background_tasks.add_task(compliance_engine.run_compliance_assessment, request, assessment_id)
         
         return {
             "message": "Compliance assessment started",

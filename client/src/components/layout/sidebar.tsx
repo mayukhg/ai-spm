@@ -11,9 +11,13 @@ import {
   Database, 
   Bug, 
   Eye, 
+  MessageSquareWarning,
   Settings, 
   ClipboardCheck, 
   Users,
+  Bot,
+  Activity,
+  ShieldAlert,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -45,10 +49,34 @@ const navigationItems = [
     roles: ["ciso", "analyst", "engineer", "compliance_officer"]
   },
   {
+    title: "Prompt Checks",
+    href: "/prompt-checks",
+    icon: MessageSquareWarning,
+    roles: ["ciso", "analyst", "engineer", "compliance_officer"]
+  },
+  {
     title: "Compliance",
     href: "/compliance",
     icon: ClipboardCheck,
     roles: ["ciso", "analyst", "compliance_officer"]
+  },
+  {
+    title: "Agentic Workflows",
+    href: "/agentic",
+    icon: Bot,
+    roles: ["ciso", "analyst", "engineer", "compliance_officer"]
+  },
+  {
+    title: "System Monitoring",
+    href: "/system-monitoring",
+    icon: Activity,
+    roles: ["ciso", "analyst", "engineer", "compliance_officer"]
+  },
+  {
+    title: "Threat Configuration",
+    href: "/threat-config",
+    icon: ShieldAlert,
+    roles: ["ciso"]
   }
 ];
 

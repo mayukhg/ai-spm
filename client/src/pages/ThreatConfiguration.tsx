@@ -75,7 +75,7 @@ export default function ThreatConfiguration() {
   const { data: configData, isLoading: configLoading, error: configError } = useQuery({
     queryKey: ['threat-config'],
     queryFn: async () => {
-      const response = await fetch('/api/threat-config/threat-config');
+      const response = await fetch('/api/threat-config/threat-config', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch threat configuration');
       }
@@ -88,7 +88,7 @@ export default function ThreatConfiguration() {
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['threat-stats'],
     queryFn: async () => {
-      const response = await fetch('/api/threat-config/threat-stats');
+      const response = await fetch('/api/threat-config/threat-stats', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch threat statistics');
       }
@@ -103,6 +103,7 @@ export default function ThreatConfiguration() {
     mutationFn: async ({ threatName, enabled }: { threatName: string; enabled: boolean }) => {
       const response = await fetch(`/api/threat-config/threat-config/${threatName}/status`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -135,6 +136,7 @@ export default function ThreatConfiguration() {
     mutationFn: async ({ threatName, thresholds }: { threatName: string; thresholds: Record<string, number> }) => {
       const response = await fetch(`/api/threat-config/threat-config/${threatName}/thresholds`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -167,6 +169,7 @@ export default function ThreatConfiguration() {
     mutationFn: async () => {
       const response = await fetch('/api/threat-config/reload-config', {
         method: 'POST',
+        credentials: 'include',
       });
       if (!response.ok) {
         throw new Error('Failed to reload configuration');

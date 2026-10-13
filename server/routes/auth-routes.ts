@@ -1,10 +1,35 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import passport from 'passport';
 import { AuthenticationProvider, WebAuthnProvider } from '../auth/oauth-provider';
 import { SecurityEventCorrelationEngine } from '../security/siem-integration';
 import rateLimit from 'express-rate-limit';
+import { storage } from '../storage';
 
 const router = express.Router();
+
+router.post('/sso/fixture', async (req, res, next) => {
+  if (process.env.SYNTHETIC_FIXTURES !== 'true') {
+    return res.status(404).json({ error: 'Synthetic SSO is not enabled' });
+  }
+  const provider = req.body?.provider as string;
+  const fixtureFile: Record<string, string> = {
+    oauth: 'oauth-userinfo.json',
+    saml: 'saml-assertion.json',
+    webauthn: 'webauthn-credential.json',
+  };
+  const fileName = fixtureFile[provider];
+  if (!fileName) return res.status(400).json({ error: 'Unknown provider' });
+  const fixture = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'fixtures/synthetic', fileName), 'utf8'));
+  const user = await storage.getUserByUsername(fixture.username);
+  if (!user || !user.isActive) return res.status(401).json({ error: 'Fixture user is not available' });
+  req.login(user, (err) => {
+    if (err) return next(err);
+    const { password, ...safe } = user;
+    res.json({ ...safe, provider });
+  });
+});
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({

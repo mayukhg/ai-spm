@@ -103,9 +103,9 @@ class WizIntegrationService:
             'assessment': self._run_security_assessment
         }
     
-    async def run_integration(self, request: WizIntegrationRequest) -> WizIntegrationResult:
+    async def run_integration(self, request: WizIntegrationRequest, integration_id: Optional[str] = None) -> WizIntegrationResult:
         """Main integration orchestrator"""
-        integration_id = self._generate_integration_id(request)
+        integration_id = integration_id or self._generate_integration_id(request)
         
         logger.info(f"Starting Wiz integration {integration_id} for asset {request.asset_id}")
         
@@ -361,9 +361,8 @@ async def health_check():
 async def start_integration(request: WizIntegrationRequest, background_tasks: BackgroundTasks):
     """Start Wiz cloud security integration"""
     try:
-        background_tasks.add_task(wiz_service.run_integration, request)
-        
         integration_id = wiz_service._generate_integration_id(request)
+        background_tasks.add_task(wiz_service.run_integration, request, integration_id)
         
         return {
             "message": "Wiz integration started",

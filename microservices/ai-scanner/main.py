@@ -96,9 +96,9 @@ class AIModelScanner:
             'generic': self._scan_generic_model
         }
     
-    async def scan_model(self, request: ScanRequest) -> ScanResult:
+    async def scan_model(self, request: ScanRequest, scan_id: Optional[str] = None) -> ScanResult:
         """Main scanning orchestrator"""
-        scan_id = self._generate_scan_id(request)
+        scan_id = scan_id or self._generate_scan_id(request)
         
         logger.info(f"Starting AI model scan {scan_id} for asset {request.asset_id}")
         
@@ -124,6 +124,7 @@ class AIModelScanner:
             
             # Perform the actual scanning
             vulnerabilities = await scanner_func(request)
+            vulnerabilities.extend(self._findings_from_model_card(request.model_path))
             
             # Calculate risk score
             risk_score = self._calculate_risk_score(vulnerabilities)
@@ -259,6 +260,26 @@ class AIModelScanner:
         
         return vulnerabilities
     
+    def _findings_from_model_card(self, model_path: Optional[str]) -> List[VulnerabilityFinding]:
+        """Read declared findings from a JSON model card when one is supplied."""
+        if not model_path or not model_path.endswith(".json") or not os.path.isfile(model_path):
+            return []
+        with open(model_path, "r", encoding="utf-8") as handle:
+            card = json.load(handle)
+        findings = []
+        for item in card.get("declaredFindings", []):
+            findings.append(VulnerabilityFinding(
+                severity=item.get("severity", "medium"),
+                category=item.get("category", "model_security"),
+                title=item["title"],
+                description=item.get("description", ""),
+                recommendation=item.get("recommendation", ""),
+                confidence_score=0.95,
+                affected_components=["model_card"],
+                metadata={"source": "model_card"}
+            ))
+        return findings
+
     def _generate_scan_id(self, request: ScanRequest) -> str:
         """Generate unique scan ID"""
         content = f"{request.asset_id}_{request.asset_type}_{datetime.utcnow().isoformat()}"
@@ -313,9 +334,8 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     """Start an AI model scan"""
     try:
         # Start scan in background
-        background_tasks.add_task(scanner.scan_model, request)
-        
         scan_id = scanner._generate_scan_id(request)
+        background_tasks.add_task(scanner.scan_model, request, scan_id)
         
         return {
             "message": "Scan started successfully",

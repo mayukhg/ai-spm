@@ -4,6 +4,8 @@
  */
 
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { AgentOrchestrationService } from '../agentic/agent-orchestrator';
 import { MCPSecurityGateway } from '../agentic/mcp-security-gateway';
 import rateLimit from 'express-rate-limit';
@@ -23,6 +25,14 @@ const agenticRateLimit = rateLimit({
 });
 
 router.use(agenticRateLimit);
+
+router.get('/catalog', (req, res) => {
+  if (typeof (req as any).isAuthenticated !== 'function' || !(req as any).isAuthenticated()) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const catalog = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'fixtures/synthetic/agentic-catalog.json'), 'utf8'));
+  res.json(catalog);
+});
 
 // Validation schemas
 const AgentConfigSchema = z.object({

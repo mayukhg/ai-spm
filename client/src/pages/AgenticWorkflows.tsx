@@ -58,98 +58,16 @@ interface MCPContext {
 
 export default function AgenticWorkflows() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-
-  // Mock data for demonstration
-  const agents: Agent[] = [
-    {
-      id: '1',
-      name: 'Data Processing Agent',
-      agentType: 'autonomous',
-      status: 'active',
-      securityLevel: 'high',
-      capabilities: ['data-analysis', 'report-generation', 'compliance-check'],
-      metrics: {
-        securityScore: 95,
-        complianceScore: 98,
-        tasksCompleted: 247,
-        errorRate: 0.02
-      },
-      lastActivity: '2025-06-24T09:15:00Z'
-    },
-    {
-      id: '2',
-      name: 'Security Monitor Agent',
-      agentType: 'supervised',
-      status: 'active',
-      securityLevel: 'critical',
-      capabilities: ['threat-detection', 'incident-response', 'vulnerability-scan'],
-      metrics: {
-        securityScore: 99,
-        complianceScore: 97,
-        tasksCompleted: 156,
-        errorRate: 0.01
-      },
-      lastActivity: '2025-06-24T09:20:00Z'
-    },
-    {
-      id: '3',
-      name: 'Compliance Assistant',
-      agentType: 'collaborative',
-      status: 'suspended',
-      securityLevel: 'medium',
-      capabilities: ['policy-check', 'audit-support', 'risk-assessment'],
-      metrics: {
-        securityScore: 87,
-        complianceScore: 94,
-        tasksCompleted: 89,
-        errorRate: 0.05
-      },
-      lastActivity: '2025-06-24T08:45:00Z'
-    }
-  ];
-
-  const workflowExecutions: WorkflowExecution[] = [
-    {
-      id: 'exec-1',
-      workflowId: 'wf-1',
-      status: 'running',
-      startTime: '2025-06-24T09:00:00Z',
-      securityEvents: [],
-      complianceChecks: [
-        { framework: 'GDPR', status: 'compliant' },
-        { framework: 'AI-Act', status: 'compliant' }
-      ]
-    },
-    {
-      id: 'exec-2',
-      workflowId: 'wf-2',
-      status: 'completed',
-      startTime: '2025-06-24T08:30:00Z',
-      endTime: '2025-06-24T08:45:00Z',
-      securityEvents: [],
-      complianceChecks: [
-        { framework: 'GDPR', status: 'compliant' },
-        { framework: 'SOC-2', status: 'compliant' }
-      ]
-    }
-  ];
-
-  const mcpContexts: MCPContext[] = [
-    {
-      id: 'ctx-1',
-      type: 'conversation',
-      sensitivityLevel: 'internal',
-      createdAt: '2025-06-24T09:00:00Z',
-      accessCount: 5
-    },
-    {
-      id: 'ctx-2',
-      type: 'data',
-      sensitivityLevel: 'confidential',
-      createdAt: '2025-06-24T08:30:00Z',
-      accessCount: 2
-    }
-  ];
+  const { data: catalog } = useQuery<{
+    agents: Agent[];
+    workflowExecutions: WorkflowExecution[];
+    mcpContexts: MCPContext[];
+  }>({
+    queryKey: ["/api/agentic/catalog"],
+  });
+  const agents = catalog?.agents ?? [];
+  const workflowExecutions = catalog?.workflowExecutions ?? [];
+  const mcpContexts = catalog?.mcpContexts ?? [];
 
   const getStatusColor = (status: string) => {
     switch (status) {

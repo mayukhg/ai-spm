@@ -1,0 +1,32 @@
+{
+  "resources": [
+    {
+      "name": "aws-sagemaker-support-endpoint",
+      "type": "api",
+      "environment": "production",
+      "riskLevel": "high",
+      "finding": {
+        "title": "Public network access",
+        "severity": "high",
+        "description": "SageMaker endpoint is reachable from a public network."
+      }
+    },
+    {
+      "name": "s3-ticket-training-bucket",
+      "type": "dataset",
+      "environment": "production",
+      "riskLevel": "critical",
+      "finding": {
+        "title": "Encryption disabled",
+        "severity": "critical",
+        "description": "Training bucket does not enforce encryption at rest."
+      }
+    },
+    {
+      "name": "gcp-vertex-endpoint",
+      "type": "api",
+      "environment": "production",
+      "riskLevel": "low"
+    }
+  ]
+}

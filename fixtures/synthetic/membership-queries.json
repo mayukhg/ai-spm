@@ -1,0 +1,204 @@
+{
+  "queries": [
+    {
+      "id": "member-1",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-2",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-3",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-4",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-5",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-6",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-7",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-8",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-9",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-10",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-11",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-12",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-13",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-14",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-15",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-16",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-17",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-18",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-19",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "member-20",
+      "loss": 0.02,
+      "member": true
+    },
+    {
+      "id": "nonmember-1",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-2",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-3",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-4",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-5",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-6",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-7",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-8",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-9",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-10",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-11",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-12",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-13",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-14",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-15",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-16",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-17",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-18",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-19",
+      "loss": 0.55,
+      "member": false
+    },
+    {
+      "id": "nonmember-20",
+      "loss": 0.55,
+      "member": false
+    }
+  ]
+}

@@ -12,6 +12,7 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../monitoring/logger';
 import { AdversarialDetectionManager } from '../adversarial-detection/adversarial-detection-manager';
+import { evasionDecision, inferredAttribute, membershipSuspects, poisoningIds } from '../analysis/synthetic-analysis';
 
 const router = Router();
 const detectionManager = new AdversarialDetectionManager();
@@ -390,86 +391,21 @@ router.post('/test', async (req: Request, res: Response) => {
 
     switch (testType) {
       case 'data_poisoning':
-        // Generate test data for data poisoning detection
-        const testDataset = {
-          datasetId: `test_dataset_${Date.now()}`,
-          samples: Array.from({ length: 100 }, (_, i) => ({
-            id: `sample_${i}`,
-            features: Array.from({ length: 10 }, () => Math.random() * 100),
-            label: Math.random() > 0.8 ? 'malicious' : 'normal', // 20% potentially poisoned
-            timestamp: new Date(),
-            source: 'test_generator'
-          }))
-        };
-
-        result = await detectionManager.analyzeDataset(
-          testDataset.datasetId,
-          testDataset.samples
-        );
+        result = { affectedSampleIds: poisoningIds(), source: 'fixtures/synthetic/ticket-training-set-poisoned.json' };
         break;
 
-      case 'model_evasion':
-        // Generate test data for model evasion detection
-        const testInput = {
-          id: `test_input_${Date.now()}`,
-          features: Array.from({ length: 10 }, () => Math.random() * 100 + Math.random() * 50), // Added noise
-          rawInput: 'test_adversarial_input',
-          timestamp: new Date(),
-          source: 'test_generator'
-        };
-
-        const modelEvasionPredictions = [{
-          modelId: 'test_model',
-          prediction: Math.random() > 0.7 ? 'malicious' : 'normal',
-          confidence: Math.random() * 0.4 + 0.3, // Low confidence to trigger detection
-          processingTime: 100,
-          gradients: Array.from({ length: 10 }, () => Math.random() * 2 - 1)
-        }];
-
-        result = await detectionManager.analyzeInput(testInput, modelEvasionPredictions);
+      case 'model_evasion': {
+        const decision = evasionDecision();
+        result = { ...decision, blocked: true, source: 'fixtures/synthetic/evasion-pair.json' };
         break;
+      }
 
       case 'membership_inference':
-        // Generate test data for membership inference detection
-        const testQueries = Array.from({ length: 50 }, (_, i) => ({
-          id: `query_${i}`,
-          features: Array.from({ length: 10 }, () => Math.random() * 100),
-          label: Math.random() > 0.5 ? 1 : 0,
-          confidence: Math.random() > 0.7 ? 0.95 : Math.random() * 0.8, // Some high confidence
-          loss: Math.random() > 0.7 ? 0.05 : Math.random() * 0.3, // Some low loss
-          timestamp: new Date(),
-          source: 'test_generator'
-        }));
-
-        result = await detectionManager.analyzeMembershipInference(
-          `test_query_${Date.now()}`,
-          'test_model',
-          testQueries
-        );
+        result = { suspectedMemberIds: membershipSuspects(), source: 'fixtures/synthetic/membership-queries.json' };
         break;
 
       case 'attribute_inference':
-        // Generate test data for attribute inference detection
-        const attributePredictions = Array.from({ length: 50 }, (_, i) => ({
-          id: `prediction_${i}`,
-          prediction: Math.random() > 0.5 ? 'positive' : 'negative',
-          confidence: Math.random(),
-          features: Array.from({ length: 10 }, () => Math.random() * 100),
-          knownAttributes: {
-            age: Math.floor(Math.random() * 60) + 18,
-            gender: Math.random() > 0.5 ? 'male' : 'female',
-            income: Math.floor(Math.random() * 100000) + 30000
-          },
-          timestamp: new Date(),
-          source: 'test_generator'
-        }));
-
-        result = await detectionManager.analyzeAttributeInference(
-          `test_attr_query_${Date.now()}`,
-          'test_model',
-          attributePredictions,
-          ['age', 'gender', 'income']
-        );
+        result = { ...inferredAttribute(), source: 'fixtures/synthetic/attribute-queries.json' };
         break;
 
       default:

@@ -22,9 +22,21 @@ import { Router, Request, Response } from 'express';
 import { logger } from '../monitoring/logger';
 import { evidenceCollector, ComplianceFramework, EvidenceType } from '../compliance/evidence-collector';
 import { complianceReportGenerator, ReportFormat, ReportType } from '../compliance/report-generator';
-// Simple middleware placeholders - TODO: Implement proper authentication
-const loginRequired = (req: any, res: any, next: any) => next();
-const roleRequired = (roles: string[]) => (req: any, res: any, next: any) => next();
+const loginRequired = (req: any, res: any, next: any) => {
+  if (typeof req.isAuthenticated !== "function" || !req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+};
+const roleRequired = (roles: string[]) => (req: any, res: any, next: any) => {
+  const role = req.user?.role as string | undefined;
+  const aliases = role === "compliance_officer" ? ["compliance_officer", "compliance-officer"] : [role];
+  if (role === "ciso") aliases.push("admin");
+  if (!role || !roles.some((allowed) => aliases.includes(allowed))) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+  next();
+};
 
 const router = Router();
 

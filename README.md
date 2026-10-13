@@ -57,33 +57,17 @@ A comprehensive enterprise-grade security solution designed to manage and monito
 - **Cloud-Native Deployment**: Kubernetes-ready with comprehensive observability
 - **High Availability**: Multi-region deployment with automated failover
 
-## ✅ **Platform Status: Fully Operational**
+## Platform status
 
-The AI Security Posture Management platform is currently **LIVE** and fully operational with all security and monitoring systems active:
+The running application is the Node gateway on port 5050, Postgres, and the four Python services. Inventory, session login, compliance scores, and the dashboard trend come from the database. Model-card scans, bias evaluation, dataset checks, and the Wiz replay read `fixtures/synthetic`. Istio and the Kubernetes manifests are deployment packaging and are not part of the local process.
 
-### 🚀 **Core Systems Status**
-- ✅ **Data Poisoning Detection** - Signatures initialized and monitoring active
-- ✅ **Model Evasion Detection** - Real-time protection against adversarial attacks  
-- ✅ **Membership Inference Detection** - Privacy protection systems operational
-- ✅ **Attribute Inference Detection** - Sensitive data safeguards active
-- ✅ **Adversarial Detection Manager** - Centralized threat coordination running
-- ✅ **Data Quality Monitor** - Real-time quality assessment with default thresholds
-- ✅ **Data Drift Detector** - Statistical distribution monitoring active
-- ✅ **Anomaly Detector** - Ensemble detection methods operational
-- ✅ **Data Quality Manager** - Orchestrated monitoring workflows running
-- ✅ **GDPR Compliance Engine** - Automated privacy policy management active
+Local checks that read the synthetic fixtures:
 
-### 🔧 **API Endpoints Available**
-- **12 Data Quality Monitoring APIs** - Quality assessment, drift detection, anomaly analysis
-- **8 Adversarial Detection APIs** - Threat detection and response management
-- **10+ Compliance Assessment APIs** - Automated evidence collection and reporting
-- **Complete REST API Suite** - Full platform management and monitoring capabilities
-
-### 📊 **Monitoring & Alerting Active**
-- **Real-time Quality Metrics** - Completeness, accuracy, consistency, validity, uniqueness, freshness
-- **Multi-channel Notifications** - Slack, email, PagerDuty, SMS, webhook integrations
-- **Configurable Thresholds** - Quality score, drift detection, anomaly rate monitoring
-- **Automated Response System** - Threat blocking, asset quarantine, escalation policies
+- A model-card scan writes the declared finding and a demographic-parity result into `vulnerabilities`.
+- Dataset quality and drift checks write `data_quality_metrics`, `data_drift_metrics`, and `data_integrity_alerts`.
+- Adversarial test calls return the planted sample ids from the fixture files.
+- Wiz sync replays `fixtures/synthetic/wiz-sync.json` when `SYNTHETIC_FIXTURES=true` and no Wiz credentials are set. Without that flag and without credentials, the sync stores nothing.
+- Splunk, QRadar, and Sentinel forward alerts only when their environment variables are set. The settings page shows that state.
 
 ## Hybrid Microservices Architecture with Service Mesh
 

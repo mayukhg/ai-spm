@@ -1,0 +1,15 @@
+{
+  "name": "support-assistant",
+  "framework": "pytorch",
+  "version": "1.13.0",
+  "provenance": null,
+  "declaredFindings": [
+    {
+      "title": "Unsafe model serialization",
+      "severity": "critical",
+      "category": "model_security",
+      "description": "Model artifact uses an unsafe deserialization path.",
+      "recommendation": "Load the model with a safe weights-only format."
+    }
+  ]
+}

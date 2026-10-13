@@ -30,19 +30,16 @@ export class ServiceProxy {
   constructor(private registry: MicroserviceRegistry) {}
 
   async proxyRequest(serviceName: string, path: string, method: string, body?: any): Promise<any> {
-    // Simplified proxy for development - in production this would make actual HTTP calls
-    console.log(`Proxying ${method} ${path} to ${serviceName} service`);
-    
-    // Return mock response for development
-    return {
-      json: async () => ({
-        message: `${serviceName} service response`,
-        service: serviceName,
-        path,
-        method,
-        timestamp: new Date().toISOString()
-      })
-    };
+    const service = this.registry.getService(serviceName);
+    if (!service) {
+      throw new Error(`Service ${serviceName} not found in registry`);
+    }
+    const response = await fetch(`${service.url}${path}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return response;
   }
 }
 

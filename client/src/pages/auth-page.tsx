@@ -72,7 +72,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
+    <div className="min-h-screen bg-black text-zinc-100 flex">
       {/* Left side - Hero section */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-2/3 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
@@ -84,11 +84,11 @@ export default function AuthPage() {
                 <Shield className="h-7 w-7 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI-SPM</h1>
+                <h1 className="text-3xl font-bold text-zinc-100">AI-SPM</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Security Posture Management</p>
               </div>
             </div>
-            <h2 className="text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-4xl xl:text-5xl font-bold text-zinc-100 mb-4">
               Secure Your AI
               <span className="block text-primary">Infrastructure</span>
             </h2>
@@ -104,7 +104,7 @@ export default function AuthPage() {
                 <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">AI Asset Discovery</h3>
+                <h3 className="font-semibold text-zinc-100 mb-1">AI Asset Discovery</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Automatically discover and inventory all AI assets across your organization
                 </p>
@@ -116,7 +116,7 @@ export default function AuthPage() {
                 <Lock className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Vulnerability Scanning</h3>
+                <h3 className="font-semibold text-zinc-100 mb-1">Vulnerability Scanning</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Continuous security scanning and threat detection for AI models
                 </p>
@@ -128,7 +128,7 @@ export default function AuthPage() {
                 <ChartBar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Compliance Reporting</h3>
+                <h3 className="font-semibold text-zinc-100 mb-1">Compliance Reporting</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Automated compliance monitoring for NIST AI RMF, GDPR, and more
                 </p>
@@ -140,7 +140,7 @@ export default function AuthPage() {
                 <Eye className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Real-time Monitoring</h3>
+                <h3 className="font-semibold text-zinc-100 mb-1">Real-time Monitoring</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   24/7 monitoring of AI system behavior and anomaly detection
                 </p>
@@ -169,17 +169,17 @@ export default function AuthPage() {
       {/* Right side - Authentication forms */}
       <div className="w-full lg:w-1/2 xl:w-1/3 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <Card className="shadow-xl border border-zinc-800 bg-zinc-950 text-zinc-100">
             <CardHeader className="text-center pb-4">
               <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                   <Shield className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI-SPM</h1>
+                  <h1 className="text-xl font-bold text-zinc-100">AI-SPM</h1>
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-2xl font-bold text-zinc-100">
                 Welcome Back
               </CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -250,6 +250,22 @@ export default function AuthPage() {
                         "Sign In"
                       )}
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={async () => {
+                        const response = await fetch("/api/auth/sso/fixture", {
+                          method: "POST",
+                          credentials: "include",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ provider: "oauth" }),
+                        });
+                        if (response.ok) window.location.href = "/";
+                      }}
+                    >
+                      Sign in with synthetic SSO
+                    </Button>
                   </form>
                 </TabsContent>
 
@@ -312,7 +328,7 @@ export default function AuthPage() {
                         <select
                           id="register-role"
                           {...registerForm.register("role")}
-                          className="h-11 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          className="h-11 w-full px-3 py-2 border border-zinc-600 rounded-md bg-black text-zinc-100"
                         >
                           <option value="analyst">Security Analyst</option>
                           <option value="engineer">AI/ML Engineer</option>

@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ResponsiveContainer, 
@@ -11,42 +10,12 @@ import {
   Tooltip, 
   Legend 
 } from "recharts";
-import { format, subDays } from "date-fns";
 import type { TimeSeriesData } from "@/types";
 
-// Generate sample time series data for the chart
-// In a real application, this would come from an API endpoint
-const generateTimeSeriesData = (): TimeSeriesData[] => {
-  const data: TimeSeriesData[] = [];
-  const now = new Date();
-  
-  for (let i = 29; i >= 0; i--) {
-    const date = subDays(now, i);
-    data.push({
-      timestamp: format(date, "MMM dd"),
-      securityScore: Math.floor(Math.random() * 20) + 75, // 75-95
-      vulnerabilities: Math.floor(Math.random() * 15) + 5, // 5-20
-      threats: Math.floor(Math.random() * 8) + 2, // 2-10
-      compliance: Math.floor(Math.random() * 15) + 80, // 80-95
-    });
-  }
-  
-  return data;
-};
-
 export default function SecurityTrendChart() {
-  const [data, setData] = useState<TimeSeriesData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setData(generateTimeSeriesData());
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { data = [], isLoading } = useQuery<TimeSeriesData[]>({
+    queryKey: ["/api/dashboard/trend"],
+  });
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

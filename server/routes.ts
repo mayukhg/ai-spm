@@ -16,6 +16,8 @@ import {
 import adversarialDetectionRoutes from './routes/adversarial-detection-routes';
 // Import data quality monitoring routes
 import { dataQualityRoutes } from './data-quality/data-quality-routes';
+import { evidenceAssessment, persistDatasetCheck, persistLlmClassifications, persistScanFindings, replayWizFixture } from './analysis/persist-results';
+import { classifyLlmPrompts, siemEvent } from './analysis/synthetic-analysis';
 
 // Microservices integration - simplified for development
 interface MicroserviceRequest extends Request {
@@ -78,6 +80,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       next(error);
     }
+  });
+
+  app.get("/api/dashboard/trend", requireAuth, async (_req, res, next) => {
+    try {
+      res.json(await storage.getPostureTrend());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/settings/status", requireAuth, async (_req, res) => {
+    res.json({
+      authentication: "session",
+      roles: ["ciso", "analyst", "engineer", "compliance_officer"],
+      syntheticFixtures: process.env.SYNTHETIC_FIXTURES === "true",
+      wiz: {
+        configured: Boolean(process.env.WIZ_CLIENT_ID && process.env.WIZ_CLIENT_SECRET),
+      },
+      siem: {
+        splunk: Boolean(process.env.SPLUNK_ENDPOINT && process.env.SPLUNK_TOKEN),
+        qradar: Boolean(process.env.QRADAR_ENDPOINT && process.env.QRADAR_TOKEN),
+        sentinel: Boolean(process.env.SENTINEL_WORKSPACE_ID && process.env.SENTINEL_SHARED_KEY),
+      },
+      services: {
+        aiScanner: process.env.AI_SCANNER_URL || "http://127.0.0.1:8001",
+        dataIntegrity: process.env.DATA_INTEGRITY_URL || "http://127.0.0.1:8002",
+        wizIntegration: process.env.WIZ_INTEGRATION_URL || "http://127.0.0.1:8003",
+        complianceEngine: process.env.COMPLIANCE_ENGINE_URL || "http://127.0.0.1:8004",
+      },
+    });
   });
 
   // AI Assets endpoints
@@ -287,11 +319,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity: alert.severity 
       });
       
-      res.status(201).json(alert);
+      res.status(201).json({ ...alert, siem: siemEvent(alert) });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
+      next(error);
+    }
+  });
+
+  app.get("/api/llm/classifications", requireAuth, async (req, res, next) => {
+    try {
+      res.json(classifyLlmPrompts());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/llm/classifications", requireAuth, async (req, res, next) => {
+    try {
+      const report = await persistLlmClassifications();
+      await logAction(req.user.id, "llm_classification", "ai_assets", report.assetId ?? undefined, {
+        evaluated: report.evaluated,
+        blocked: report.blocked,
+      });
+      res.json(report);
+    } catch (error) {
       next(error);
     }
   });
@@ -468,184 +521,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Microservices Integration Endpoints (Development Mode)
-  // Note: In production, these would proxy to actual Python microservices
-  
-  // AI Scanner Microservice Endpoints
+  // Python microservices. The gateway forwards these calls instead of returning stubs.
+  const microserviceUrls: Record<string, string> = {
+    "ai-scanner": process.env.AI_SCANNER_URL || process.env.AI_SCANNER_SERVICE_URL || "http://127.0.0.1:8001",
+    "data-integrity": process.env.DATA_INTEGRITY_URL || process.env.DATA_INTEGRITY_SERVICE_URL || "http://127.0.0.1:8002",
+    "wiz-integration": process.env.WIZ_INTEGRATION_URL || process.env.WIZ_INTEGRATION_SERVICE_URL || "http://127.0.0.1:8003",
+    "compliance-engine": process.env.COMPLIANCE_ENGINE_URL || process.env.COMPLIANCE_ENGINE_SERVICE_URL || "http://127.0.0.1:8004",
+  };
+
+  async function callMicroservice(service: string, path: string, method = "GET", body?: unknown) {
+    const baseUrl = microserviceUrls[service];
+    if (!baseUrl) {
+      const error = new Error(`Unknown microservice: ${service}`) as Error & { status?: number };
+      error.status = 503;
+      throw error;
+    }
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { "Content-Type": "application/json", "X-Forwarded-By": "ai-spm-gateway" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let payload: any = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = { message: text };
+      }
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        payload?.detail ? `Service ${service} rejected the request` : `Service ${service} returned ${response.status}`
+      ) as Error & { status?: number; payload?: unknown };
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  }
+
+  function sendServiceError(res: any, error: any, next: any) {
+    if (error?.status) {
+      return res.status(error.status).json({
+        error: error.message,
+        service: error.payload ?? null,
+      });
+    }
+    if (error?.cause?.code === "ECONNREFUSED" || error?.code === "ECONNREFUSED") {
+      return res.status(503).json({ error: "Microservice is not reachable" });
+    }
+    next(error);
+  }
+
   app.post("/api/ai-scanner/scan", requireAuth, async (req: any, res, next) => {
     try {
+      const asset = await storage.getAiAsset(Number(req.body.asset_id));
+      const metadata = (asset?.metadata ?? {}) as { modelCardPath?: string; framework?: string };
       const scanRequest = {
-        asset_id: req.body.asset_id,
-        asset_type: req.body.asset_type,
-        framework: req.body.framework,
-        model_path: req.body.model_path,
+        asset_id: Number(req.body.asset_id),
+        asset_type: req.body.asset_type || asset?.type,
+        framework: req.body.framework || metadata.framework,
+        model_path: req.body.model_path || metadata.modelCardPath,
         scan_depth: req.body.scan_depth || "standard",
-        correlation_id: `scan-${Date.now()}`
+        correlation_id: `scan-${Date.now()}`,
       };
 
       await logAction(req.user.id, "ai_scan_started", "ai_assets", scanRequest.asset_id, scanRequest);
-
-      // Mock response simulating Python AI Scanner microservice
-      const mockScanResult = {
-        message: "AI scan started successfully",
-        scan_id: `scan_${Date.now().toString().slice(-8)}`,
-        asset_id: scanRequest.asset_id,
-        estimated_duration: "2-5 minutes",
-        correlation_id: scanRequest.correlation_id,
-        service: "ai-scanner",
-        framework: scanRequest.framework || "generic"
-      };
-
-      res.json(mockScanResult);
+      const result = await callMicroservice("ai-scanner", "/scan", "POST", scanRequest);
+      let persisted = null;
+      if (result?.scan_id) {
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          try {
+            const completed = await callMicroservice("ai-scanner", `/scan/${encodeURIComponent(result.scan_id)}`);
+            if (completed?.status === "completed" || completed?.status === "failed") break;
+          } catch {
+            break;
+          }
+        }
+      }
+      persisted = await persistScanFindings(scanRequest.asset_id, scanRequest.model_path);
+      res.json({ ...result, service: "ai-scanner", persisted });
     } catch (error) {
-      next(error);
+      sendServiceError(res, error, next);
     }
   });
 
   app.get("/api/ai-scanner/scan/:scanId", requireAuth, async (req: any, res, next) => {
     try {
-      // Mock response simulating scan result retrieval
-      const mockResult = {
-        scan_id: req.params.scanId,
-        status: "completed",
-        vulnerabilities: [
-          {
-            severity: "medium",
-            title: "Model Framework Vulnerability",
-            description: "Potential security issue detected in AI framework",
-            recommendation: "Update framework to latest version"
-          }
-        ],
-        risk_score: 6.5,
-        service: "ai-scanner"
-      };
-
-      res.json(mockResult);
+      const result = await callMicroservice("ai-scanner", `/scan/${encodeURIComponent(req.params.scanId)}`);
+      res.json({ ...result, service: "ai-scanner" });
     } catch (error) {
-      next(error);
+      sendServiceError(res, error, next);
     }
   });
 
-  // Data Integrity Microservice Endpoints
   app.post("/api/data-integrity/check", requireAuth, async (req: any, res, next) => {
     try {
       const checkRequest = {
-        asset_id: req.body.asset_id,
+        asset_id: Number(req.body.asset_id),
         data_source: req.body.data_source,
         check_type: req.body.check_type,
-        correlation_id: `check-${Date.now()}`
+        dataset_path: req.body.dataset_path,
+        correlation_id: `check-${Date.now()}`,
       };
 
       await logAction(req.user.id, "data_integrity_check_started", "ai_assets", checkRequest.asset_id, checkRequest);
-
-      const mockCheckResult = {
-        message: "Data integrity check started",
-        check_id: `check_${Date.now().toString().slice(-8)}`,
-        asset_id: checkRequest.asset_id,
-        check_type: checkRequest.check_type,
-        estimated_duration: "1-3 minutes",
-        service: "data-integrity"
-      };
-
-      res.json(mockCheckResult);
+      const result = await callMicroservice("data-integrity", "/check", "POST", checkRequest);
+      const analysis = await persistDatasetCheck(checkRequest.asset_id, checkRequest.check_type);
+      res.json({ ...result, service: "data-integrity", analysis });
     } catch (error) {
-      next(error);
+      sendServiceError(res, error, next);
     }
   });
 
-  // Wiz Integration Microservice Endpoints
   app.post("/api/wiz-integration/integrate", requireRole(["ciso", "analyst"]), async (req: any, res, next) => {
     try {
       const integrationRequest = {
-        asset_id: req.body.asset_id,
+        asset_id: Number(req.body.asset_id),
         integration_type: req.body.integration_type || "sync",
         cloud_provider: req.body.cloud_provider,
-        correlation_id: `wiz-${Date.now()}`
+        resource_filters: req.body.resource_filters,
+        sync_scope: req.body.sync_scope,
+        correlation_id: `wiz-${Date.now()}`,
       };
+
+      const useFixture = req.body.useFixture === true || process.env.SYNTHETIC_FIXTURES === "true";
+      const hasCredentials = Boolean(process.env.WIZ_CLIENT_ID && process.env.WIZ_CLIENT_SECRET);
+      if (!useFixture && !hasCredentials) {
+        return res.status(422).json({
+          status: "failed",
+          message: "Wiz credentials not configured",
+          imported: [],
+        });
+      }
 
       await logAction(req.user.id, "wiz_integration_started", "integrations", undefined, integrationRequest);
-
-      const mockIntegrationResult = {
-        message: "Wiz integration started",
-        integration_id: `wiz_${Date.now().toString().slice(-8)}`,
-        asset_id: integrationRequest.asset_id,
-        integration_type: integrationRequest.integration_type,
-        estimated_duration: "3-7 minutes",
-        service: "wiz-integration"
-      };
-
-      res.json(mockIntegrationResult);
+      if (useFixture && !hasCredentials) {
+        const imported = await replayWizFixture();
+        return res.json({ status: "completed", service: "wiz-integration", source: "fixture", ...imported });
+      }
+      const result = await callMicroservice("wiz-integration", "/integrate", "POST", integrationRequest);
+      res.json({ ...result, service: "wiz-integration" });
     } catch (error) {
-      next(error);
+      sendServiceError(res, error, next);
     }
   });
 
-  // Compliance Engine Microservice Endpoints
   app.post("/api/compliance/assess", requireRole(["ciso", "compliance_officer"]), async (req: any, res, next) => {
     try {
       const assessmentRequest = {
-        asset_id: req.body.asset_id,
+        asset_id: Number(req.body.asset_id),
         framework: req.body.framework,
         assessment_type: req.body.assessment_type || "full",
-        correlation_id: `comp-${Date.now()}`
+        scope: req.body.scope,
+        correlation_id: `comp-${Date.now()}`,
       };
 
       await logAction(req.user.id, "compliance_assessment_started", "ai_assets", assessmentRequest.asset_id, assessmentRequest);
-
-      const mockAssessmentResult = {
-        message: "Compliance assessment started",
-        assessment_id: `comp_${Date.now().toString().slice(-8)}`,
-        asset_id: assessmentRequest.asset_id,
-        framework: assessmentRequest.framework,
-        estimated_duration: "2-4 minutes",
-        service: "compliance-engine"
-      };
-
-      res.json(mockAssessmentResult);
+      const evidence = await evidenceAssessment(assessmentRequest.asset_id, assessmentRequest.framework, req.user.id);
+      const result = await callMicroservice("compliance-engine", "/assess", "POST", assessmentRequest);
+      res.json({ ...result, service: "compliance-engine", evidence });
     } catch (error) {
-      next(error);
+      sendServiceError(res, error, next);
     }
   });
 
-  app.get("/api/compliance/frameworks", requireAuth, async (req: any, res, next) => {
-    try {
-      const mockFrameworks = {
-        supported_frameworks: ["gdpr", "ccpa", "hipaa", "eu_ai_act", "nist_ai_rmf", "sox"],
-        framework_details: {
-          gdpr: { name: "General Data Protection Regulation", jurisdiction: "European Union" },
-          eu_ai_act: { name: "EU Artificial Intelligence Act", jurisdiction: "European Union" },
-          nist_ai_rmf: { name: "NIST AI Risk Management Framework", jurisdiction: "United States" }
-        },
-        service: "compliance-engine"
-      };
+  app.get("/api/microservices/health", requireAuth, async (_req: any, res) => {
+    const services: Record<string, boolean> = {};
+    await Promise.all(
+      Object.entries(microserviceUrls).map(async ([name, url]) => {
+        try {
+          const response = await fetch(`${url}/health`);
+          services[name] = response.ok;
+        } catch {
+          services[name] = false;
+        }
+      })
+    );
 
-      res.json(mockFrameworks);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Microservices Health Check Endpoint
-  app.get("/api/microservices/health", requireAuth, async (req: any, res, next) => {
-    try {
-      const mockHealthStatus = {
-        gateway_status: "healthy",
-        services: {
-          "ai-scanner": true,
-          "data-integrity": true,
-          "wiz-integration": false,
-          "compliance-engine": true
-        },
-        timestamp: new Date().toISOString(),
-        total_services: 4,
-        healthy_services: 3,
-        architecture: "hybrid-microservices"
-      };
-
-      res.json(mockHealthStatus);
-    } catch (error) {
-      next(error);
-    }
+    const healthy = Object.values(services).filter(Boolean).length;
+    res.json({
+      gateway_status: "healthy",
+      services,
+      timestamp: new Date().toISOString(),
+      total_services: Object.keys(services).length,
+      healthy_services: healthy,
+      architecture: "hybrid-microservices",
+    });
   });
 
   // Legacy Wiz endpoints - now handled by microservices

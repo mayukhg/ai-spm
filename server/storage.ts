@@ -7,6 +7,7 @@ import {
   complianceAssessments,
   governancePolicies,
   auditLogs,
+  postureSnapshots,
   type User, 
   type InsertUser,
   type AiAsset,
@@ -110,7 +111,16 @@ export interface IStorage {
     criticalVulnerabilities: number;
     activeThreats: number;
     complianceScore: number;
+    assetChangePercent: number;
+    complianceChangePercent: number;
   }>;
+  getPostureTrend(): Promise<{
+    timestamp: string;
+    securityScore: number;
+    vulnerabilities: number;
+    threats: number;
+    compliance: number;
+  }[]>;
 
   sessionStore: session.SessionStore;
 }
@@ -422,7 +432,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllGovernancePolicies(): Promise<GovernancePolicy[]> {
-    return await db.select().from(governancePolicies).where(eq(governancePolicies.isActive, true));
+    return await db.select().from(governancePolicies).orderBy(desc(governancePolicies.isActive));
   }
 
   async createGovernancePolicy(policy: InsertGovernancePolicy): Promise<GovernancePolicy> {
@@ -489,19 +499,48 @@ export class DatabaseStorage implements IStorage {
       .from(securityAlerts)
       .where(eq(securityAlerts.status, 'active'));
 
-    // Get average compliance score
-    const [complianceAvg] = await db
-      .select({ 
-        avgScore: sql<number>`COALESCE(AVG(${complianceAssessments.score}), 0)::integer`
-      })
-      .from(complianceAssessments);
+    const nistScores = await db
+      .select({ score: complianceAssessments.score })
+      .from(complianceAssessments)
+      .innerJoin(complianceFrameworks, eq(complianceAssessments.frameworkId, complianceFrameworks.id))
+      .where(and(
+        like(complianceFrameworks.name, "%NIST%"),
+        sql`${complianceAssessments.findings}->>'source' = 'synthetic-baseline'`
+      ))
+      .orderBy(desc(complianceAssessments.assessedAt))
+      .limit(2);
+
+    const snapshots = await db
+      .select({ assetCount: postureSnapshots.assetCount })
+      .from(postureSnapshots)
+      .orderBy(postureSnapshots.recordedOn);
+    const earliest = snapshots[0]?.assetCount ?? 0;
+    const latest = snapshots[snapshots.length - 1]?.assetCount ?? earliest;
+    const assetChangePercent = earliest > 0 ? Math.round(((latest - earliest) / earliest) * 100) : 0;
+    const complianceChangePercent = nistScores.length >= 2 ? nistScores[0].score - nistScores[1].score : 0;
 
     return {
       totalAssets: assetCount.count,
       criticalVulnerabilities: criticalVulnCount.count,
       activeThreats: activeThreatsCount.count,
-      complianceScore: complianceAvg.avgScore
+      complianceScore: nistScores[0]?.score ?? 0,
+      assetChangePercent,
+      complianceChangePercent,
     };
+  }
+
+  async getPostureTrend() {
+    const snapshots = await db
+      .select()
+      .from(postureSnapshots)
+      .orderBy(postureSnapshots.recordedOn);
+    return snapshots.map((snapshot) => ({
+      timestamp: snapshot.recordedOn.toLocaleDateString("en-US", { month: "short", day: "2-digit" }),
+      securityScore: snapshot.securityScore,
+      vulnerabilities: snapshot.vulnerabilities,
+      threats: snapshot.threats,
+      compliance: snapshot.compliance,
+    }));
   }
 }
 

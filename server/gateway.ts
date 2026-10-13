@@ -51,28 +51,28 @@ export class ServiceRegistry {
     const services: ServiceConfig[] = [
       {
         name: 'ai-scanner',
-        url: process.env.AI_SCANNER_SERVICE_URL || 'http://localhost:8001',
+        url: process.env.AI_SCANNER_URL || process.env.AI_SCANNER_SERVICE_URL || 'http://localhost:8001',
         healthEndpoint: '/health',
         timeout: 30000,
         retries: 3
       },
       {
         name: 'data-integrity',
-        url: process.env.DATA_INTEGRITY_SERVICE_URL || 'http://localhost:8002',
+        url: process.env.DATA_INTEGRITY_URL || process.env.DATA_INTEGRITY_SERVICE_URL || 'http://localhost:8002',
         healthEndpoint: '/health',
         timeout: 15000,
         retries: 2
       },
       {
         name: 'wiz-integration',
-        url: process.env.WIZ_INTEGRATION_SERVICE_URL || 'http://localhost:8003',
+        url: process.env.WIZ_INTEGRATION_URL || process.env.WIZ_INTEGRATION_SERVICE_URL || 'http://localhost:8003',
         healthEndpoint: '/health',
         timeout: 10000,
         retries: 2
       },
       {
         name: 'compliance-engine',
-        url: process.env.COMPLIANCE_ENGINE_SERVICE_URL || 'http://localhost:8004',
+        url: process.env.COMPLIANCE_ENGINE_URL || process.env.COMPLIANCE_ENGINE_SERVICE_URL || 'http://localhost:8004',
         healthEndpoint: '/health',
         timeout: 20000,
         retries: 3

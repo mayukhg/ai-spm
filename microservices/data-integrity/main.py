@@ -95,9 +95,9 @@ class DataIntegrityChecker:
             'privacy': self._check_privacy_compliance
         }
     
-    async def run_integrity_check(self, request: DataIntegrityRequest) -> IntegrityCheckResult:
+    async def run_integrity_check(self, request: DataIntegrityRequest, check_id: Optional[str] = None) -> IntegrityCheckResult:
         """Main integrity check orchestrator"""
-        check_id = self._generate_check_id(request)
+        check_id = check_id or self._generate_check_id(request)
         
         logger.info(f"Starting data integrity check {check_id} for asset {request.asset_id}")
         
@@ -363,9 +363,8 @@ async def health_check():
 async def start_integrity_check(request: DataIntegrityRequest, background_tasks: BackgroundTasks):
     """Start a data integrity check"""
     try:
-        background_tasks.add_task(checker.run_integrity_check, request)
-        
         check_id = checker._generate_check_id(request)
+        background_tasks.add_task(checker.run_integrity_check, request, check_id)
         
         return {
             "message": "Data integrity check started",

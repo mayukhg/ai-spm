@@ -32,24 +32,17 @@ const CustomThreatSchema = z.object({
   responseActions: z.array(z.string())
 });
 
-// Middleware for authentication (simplified for demo)
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // In production, implement proper JWT verification
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
+  if (typeof (req as any).isAuthenticated !== "function" || !(req as any).isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
   }
-  
-  // Mock user context
-  (req as any).user = { id: 'user-123', roles: ['security_admin'] };
   next();
 };
 
-// Middleware for admin permissions
 const requireSecurityAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const user = (req as any).user;
-  if (!user || !user.roles.includes('security_admin')) {
-    return res.status(403).json({ error: 'Security administrator permissions required' });
+  const role = (req as any).user?.role;
+  if (role !== "ciso" && role !== "admin") {
+    return res.status(403).json({ error: "CISO permissions required" });
   }
   next();
 };

@@ -1,5 +1,7 @@
 # AI Security Posture Management Platform (Python)
 
+This Flask application is a separate codebase. The interface and API that serve the product are the Node gateway in the repository root.
+
 A comprehensive enterprise-grade security management platform designed specifically for AI/ML systems, built with Flask and PostgreSQL. This platform provides complete lifecycle security management for AI assets including vulnerability assessment, compliance monitoring, and threat detection.
 
 ## Features

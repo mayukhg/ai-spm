@@ -6,6 +6,7 @@
 import { logger, SecurityEventType } from './logger';
 import { metrics } from './metrics-collector';
 import { db } from '../db';
+import { users } from '@shared/schema';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -168,7 +169,7 @@ class HealthChecker {
     
     try {
       // Test database connection
-      await db.select().from('users' as any).limit(1);
+      await db.select({ id: users.id }).from(users).limit(1);
       
       const responseTime = Date.now() - startTime;
       
@@ -533,7 +534,7 @@ class HealthChecker {
   async quickHealthCheck(): Promise<{ status: 'ok' | 'error'; timestamp: string }> {
     try {
       // Quick database connectivity check
-      await db.select().from('users' as any).limit(1);
+      await db.select({ id: users.id }).from(users).limit(1);
       
       return {
         status: 'ok',

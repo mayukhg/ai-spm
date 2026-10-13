@@ -18,7 +18,7 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center min-h-screen bg-black text-zinc-100">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <p className="text-gray-600">Loading...</p>
@@ -40,14 +40,14 @@ export function ProtectedRoute({
   if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
     return (
       <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center min-h-screen bg-black text-zinc-100">
           <div className="max-w-md mx-auto text-center">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-ban text-red-500 text-xl"></i>
+            <div className="bg-zinc-950 rounded-lg shadow-sm border border-zinc-700 p-6">
+              <div className="w-12 h-12 bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-ban text-red-400 text-xl"></i>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
+              <h2 className="text-xl font-semibold text-zinc-100 mb-2">Access Denied</h2>
+              <p className="text-zinc-300 mb-4">
                 You don't have the required permissions to access this page.
               </p>
               <p className="text-sm text-gray-500">

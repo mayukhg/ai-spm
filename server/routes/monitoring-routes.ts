@@ -11,23 +11,17 @@ import { notificationManager } from '../monitoring/notification-manager';
 
 const router = express.Router();
 
-// Middleware for authentication (simplified for demo)
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // In production, implement proper JWT verification
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
+  if (typeof (req as any).isAuthenticated !== "function" || !(req as any).isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
   }
-  
-  // Mock user context
-  (req as any).user = { id: 'user-123', roles: ['security_admin'] };
   next();
 };
 
 /**
  * Get comprehensive system health status
  */
-router.get('/health', async (req, res) => {
+router.get('/health', requireAuth, async (req, res) => {
   try {
     const health = await healthChecker.performAllHealthChecks();
     

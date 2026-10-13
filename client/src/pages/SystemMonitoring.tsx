@@ -14,9 +14,8 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
-  Cpu,
-  HardDrive,
-  Memory,
+  Cpu, 
+  HardDrive, 
   Network,
   Bell,
   Settings,
@@ -143,7 +142,7 @@ export default function SystemMonitoring() {
   const { data: healthData, isLoading, error, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: async () => {
-      const response = await fetch('/api/monitoring/health');
+      const response = await fetch('/api/monitoring/health', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch system health');
       }
@@ -480,7 +479,7 @@ export default function SystemMonitoring() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Memory className="w-4 h-4 mr-2" />
+                  <Cpu className="w-4 h-4 mr-2" />
                   Memory Usage
                 </CardTitle>
               </CardHeader>

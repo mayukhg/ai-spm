@@ -28,6 +28,8 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
     switch (type) {
       case "prompt_injection":
         return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case "jailbreak":
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
       case "data_poisoning":
         return <Shield className="h-5 w-5 text-orange-500" />;
       case "model_theft":
@@ -155,6 +157,18 @@ export default function AlertFeed({ alerts, isLoading }: AlertFeedProps) {
                   <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                     {alert.description}
                   </p>
+                  {Array.isArray((alert.metadata as { tokens?: { text: string; flagged: boolean; category: string | null }[] } | null)?.tokens) && (
+                    <p className="text-xs leading-5 mb-2">
+                      {((alert.metadata as { tokens: { text: string; flagged: boolean; category: string | null }[] }).tokens).map((token, index) => (
+                        <span key={`${alert.id}-${index}`}>
+                          {index > 0 ? " " : ""}
+                          <span className={token.flagged ? (token.category === "jailbreak" ? "bg-orange-500 text-black rounded px-0.5" : "bg-red-600 text-white rounded px-0.5") : "text-muted-foreground"}>
+                            {token.text}
+                          </span>
+                        </span>
+                      ))}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="capitalize">{formatAlertType(alert.type)}</span>
