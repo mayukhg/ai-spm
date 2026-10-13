@@ -14,7 +14,7 @@ import { agenticRoutes } from './routes/agentic-routes';
 import { monitoringRoutes } from './routes/monitoring-routes';
 import { threatConfigRoutes } from './routes/threat-config-routes';
 import complianceRoutes from './routes/compliance-routes';
-import { startResidentAgent } from './governance/resident-agent';
+import { startResidentAgent, stopResidentAgent } from './governance/resident-agent';
 
 const app = express();
 
@@ -32,7 +32,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5000',
+  origin: process.env.CORS_ORIGIN || `http://localhost:${process.env.PORT || 5000}`,
   credentials: true,
 }));
 
@@ -184,14 +184,35 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
       startResidentAgent();
     }
 
-    const flushPhoenix = async () => {
-      await shutdownPhoenixTracing();
+    let shuttingDown = false;
+    const gracefulShutdown = async (signal: string) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      log(`Received ${signal} — stopping resident agent, HTTP server, Phoenix tracer`);
+      try {
+        stopResidentAgent();
+      } catch (err) {
+        console.error("Resident agent stop error:", err);
+      }
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 4000);
+        server.close(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+      try {
+        await shutdownPhoenixTracing();
+      } catch (err) {
+        console.error("Phoenix tracer shutdown error:", err);
+      }
+      process.exit(0);
     };
     process.once("SIGTERM", () => {
-      void flushPhoenix().finally(() => process.exit(0));
+      void gracefulShutdown("SIGTERM");
     });
     process.once("SIGINT", () => {
-      void flushPhoenix().finally(() => process.exit(0));
+      void gracefulShutdown("SIGINT");
     });
   });
 })().catch((err) => {

@@ -83,21 +83,40 @@ cp .env.example .env
 npm install
 DATABASE_URL=... npx tsx scripts/seed-synthetic.ts
 
-# 3) Optional Python services (separate terminals)
-PORT=8001 python microservices/ai-scanner/main.py
-PORT=8002 python microservices/data-integrity/main.py
-PORT=8003 python microservices/wiz-integration/main.py
-PORT=8004 python microservices/compliance-engine/main.py
-
-# 4) App
-npm run dev
+# 3) Start stack (Node app + optional Python microservices)
+npm run start:local
 # open http://localhost:5050
 # login: ciso.synthetic / Synthetic123!
+
+# Optional flags:
+#   START_PHOENIX=true npm run start:local
+#   SKIP_MICROSERVICES=true npm run start:local
+#   npm run stop:local
+#   STOP_PHOENIX=true npm run stop:local
 ```
 
 ```bash
 npm run test:regression   # requires the app running on BASE_URL (default :5050)
 ```
+
+### Local startup & shutdown scripts
+
+| Script | npm alias | Purpose |
+|--------|-----------|---------|
+| [`scripts/start-local.sh`](scripts/start-local.sh) | `npm run start:local` | Load `.env`, optionally start Phoenix + Python microservices (`:8001`–`:8004`), start the Node app on `PORT` (default **5050**), wait for `/api/health` |
+| [`scripts/stop-local.sh`](scripts/stop-local.sh) | `npm run stop:local` | SIGTERM recorded PIDs, free app + microservice ports; set `STOP_PHOENIX=true` to stop the `ai-spm-phoenix` container |
+
+Shared helpers live in [`scripts/lib/common.sh`](scripts/lib/common.sh). Runtime PIDs and logs go under `.run/` (gitignored).
+
+```bash
+./scripts/start-local.sh
+./scripts/stop-local.sh
+# or
+npm run start:local
+npm run stop:local
+```
+
+Useful env flags: `START_PHOENIX=true`, `SKIP_MICROSERVICES=true`, `SKIP_APP=true`, `STOP_PHOENIX=true`, `AI_SPM_PYTHON=/path/to/python`.
 
 ## Platform status
 

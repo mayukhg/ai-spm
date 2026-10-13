@@ -1,6 +1,6 @@
 {
-  "startedAt": "2026-10-13T06:07:50.504Z",
-  "finishedAt": "2026-10-13T06:08:48.157Z",
+  "startedAt": "2026-10-13T07:35:22.519Z",
+  "finishedAt": "2026-10-13T07:36:18.930Z",
   "baseUrl": "http://127.0.0.1:5050",
   "results": [
     {
@@ -22,14 +22,14 @@
       "suite": "unit",
       "name": "KS drift detects baseline vs current amount shift",
       "status": "passed",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "UNIT-IF-01",
       "suite": "unit",
       "name": "Isolation Forest flags planted high-amount outliers",
       "status": "passed",
-      "durationMs": 49
+      "durationMs": 53
     },
     {
       "id": "UNIT-LOF-01",
@@ -43,7 +43,7 @@
       "suite": "unit",
       "name": "Full fast-math monitor stays under 100ms budget",
       "status": "passed",
-      "durationMs": 48
+      "durationMs": 51
     },
     {
       "id": "UNIT-FM-02",
@@ -64,21 +64,21 @@
       "suite": "functional",
       "name": "Login accepts synthetic CISO credentials",
       "status": "passed",
-      "durationMs": 32
+      "durationMs": 49
     },
     {
       "id": "FUNC-CORE-03",
       "suite": "functional",
       "name": "Dashboard metrics include synthetic posture fields",
       "status": "passed",
-      "durationMs": 7
+      "durationMs": 12
     },
     {
       "id": "FUNC-CORE-04",
       "suite": "functional",
       "name": "Dashboard trend returns stored snapshots",
       "status": "passed",
-      "durationMs": 3
+      "durationMs": 5
     },
     {
       "id": "FUNC-LLM-01",
@@ -92,14 +92,14 @@
       "suite": "functional",
       "name": "GET /api/llm/classifications returns three scored prompts",
       "status": "passed",
-      "durationMs": 2
+      "durationMs": 4
     },
     {
       "id": "FUNC-LLM-03",
       "suite": "functional",
       "name": "POST /api/llm/classifications stores block alerts",
       "status": "passed",
-      "durationMs": 15
+      "durationMs": 13
     },
     {
       "id": "FUNC-HEALTH-01",
@@ -113,21 +113,21 @@
       "suite": "functional",
       "name": "Run now completes under 100ms and persists a cycle",
       "status": "passed",
-      "durationMs": 60
+      "durationMs": 100
     },
     {
       "id": "FUNC-GOV-01",
       "suite": "functional",
       "name": "OpenRouter configuration is reported from env",
       "status": "passed",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "FUNC-GOV-02",
       "suite": "functional",
       "name": "POST /api/governance/reports queues async GDPR/NIST synthesis",
       "status": "passed",
-      "durationMs": 12142,
+      "durationMs": 12167,
       "details": {
         "requiresOpenRouter": true
       }
@@ -137,28 +137,28 @@
       "suite": "functional",
       "name": "Settings status exposes syntheticFixtures",
       "status": "passed",
-      "durationMs": 7
+      "durationMs": 6
     },
     {
       "id": "UI-BOOT-01",
       "suite": "ui",
       "name": "Headless Chromium launches",
       "status": "passed",
-      "durationMs": 5919
+      "durationMs": 2082
     },
     {
       "id": "UI-AUTH-01",
       "suite": "ui",
       "name": "Auth page renders black theme and sign-in controls",
       "status": "passed",
-      "durationMs": 899
+      "durationMs": 2743
     },
     {
       "id": "UI-AUTH-02",
       "suite": "ui",
       "name": "Synthetic login reaches dashboard",
       "status": "passed",
-      "durationMs": 31730
+      "durationMs": 31729
     },
     {
       "id": "UI-DASH-01",
@@ -179,35 +179,35 @@
       "suite": "ui",
       "name": "Prompt Checks page shows three classifications",
       "status": "passed",
-      "durationMs": 620
+      "durationMs": 616
     },
     {
       "id": "UI-HEALTH-01",
       "suite": "ui",
       "name": "Health & Governance shows resident agent and OpenRouter status",
       "status": "passed",
-      "durationMs": 626
+      "durationMs": 632
     },
     {
       "id": "UI-HEALTH-02",
       "suite": "ui",
       "name": "Run now creates a monitoring cycle row",
       "status": "passed",
-      "durationMs": 47
+      "durationMs": 52
     },
     {
       "id": "UI-HEALTH-03",
       "suite": "ui",
       "name": "Generate report queues and lists a governance report",
       "status": "passed",
-      "durationMs": 50
+      "durationMs": 66
     },
     {
       "id": "UI-THEME-01",
       "suite": "ui",
       "name": "Primary pages keep black background",
       "status": "passed",
-      "durationMs": 3781
+      "durationMs": 3752
     }
   ],
   "summary": {
