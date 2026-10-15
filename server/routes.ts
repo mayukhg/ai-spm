@@ -31,6 +31,11 @@ import {
   listGovernanceReports,
   startGovernanceReport,
 } from './governance/async-compliance';
+import {
+  mapAssetType,
+  mapFramework,
+  trackForUser,
+} from './analytics/mixpanel';
 
 // Microservices integration - simplified for development
 interface MicroserviceRequest extends Request {
@@ -175,9 +180,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertAiAssetSchema.parse(req.body);
       const asset = await storage.createAiAsset(validatedData);
-      
+
       await logAction(req.user.id, "create_asset", "ai_asset", asset.id, { name: asset.name });
-      
+      trackForUser(req.user, "ai_asset_registered", {
+        asset_type: mapAssetType(asset.type),
+        source: "manual",
+        framework: mapFramework(asset.framework),
+        risk_level: asset.riskLevel,
+      });
+
       res.status(201).json(asset);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -191,14 +202,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      
+      const existing = await storage.getAiAsset(id);
+
       const asset = await storage.updateAiAsset(id, updates);
       if (!asset) {
         return res.status(404).json({ error: "Asset not found" });
       }
 
       await logAction(req.user.id, "update_asset", "ai_asset", id, { updates: Object.keys(updates) });
-      
+
+      if (
+        existing &&
+        updates.riskLevel !== undefined &&
+        updates.riskLevel !== existing.riskLevel
+      ) {
+        const riskRank: Record<string, number> = { low: 25, medium: 50, high: 75, critical: 100 };
+        const oldScore = riskRank[existing.riskLevel] ?? 50;
+        const newScore = riskRank[asset.riskLevel] ?? 50;
+        trackForUser(req.user, "risk_score_changed", {
+          asset_id: String(asset.id),
+          old_score: oldScore,
+          new_score: newScore,
+          delta: newScore - oldScore,
+        });
+      }
+
       res.json(asset);
     } catch (error) {
       next(error);
@@ -208,14 +236,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/ai-assets/:id", requireRole(["ciso", "admin"]), async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);
+      const existing = await storage.getAiAsset(id);
       const success = await storage.deleteAiAsset(id);
-      
+
       if (!success) {
         return res.status(404).json({ error: "Asset not found" });
       }
 
       await logAction(req.user.id, "delete_asset", "ai_asset", id);
-      
+      trackForUser(req.user, "ai_asset_deleted", {
+        asset_id: String(id),
+        asset_type: mapAssetType(existing?.type),
+        risk_level: existing?.riskLevel || "medium",
+      });
+
       res.sendStatus(204);
     } catch (error) {
       next(error);
@@ -332,12 +366,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertSecurityAlertSchema.parse(req.body);
       const alert = await storage.createSecurityAlert(validatedData);
-      
-      await logAction(req.user.id, "create_alert", "security_alert", alert.id, { 
+
+      await logAction(req.user.id, "create_alert", "security_alert", alert.id, {
         type: alert.type,
-        severity: alert.severity 
+        severity: alert.severity
       });
-      
+      trackForUser(req.user, "alert_triggered", {
+        alert_type: alert.type,
+        severity: alert.severity,
+        asset_id: alert.assetId != null ? String(alert.assetId) : "",
+        auto_assigned: false,
+      });
+
       res.status(201).json({ ...alert, siem: siemEvent(alert) });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -372,14 +412,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      
+      const existing = await storage.getSecurityAlert(id);
+
       const alert = await storage.updateSecurityAlert(id, updates);
       if (!alert) {
         return res.status(404).json({ error: "Alert not found" });
       }
 
       await logAction(req.user.id, "update_alert", "security_alert", id, { updates: Object.keys(updates) });
-      
+
+      if (updates.status === "resolved") {
+        const detectedAt = existing?.detectedAt ? new Date(existing.detectedAt).getTime() : Date.now();
+        const minutes = Math.max(0, Math.round((Date.now() - detectedAt) / 60000));
+        trackForUser(req.user, "alert_resolved", {
+          alert_id: String(id),
+          resolution_type: "manual",
+          time_to_resolve_minutes: minutes,
+          severity: alert.severity,
+        });
+      } else if (updates.status === "false_positive" || updates.status === "dismissed") {
+        trackForUser(req.user, "alert_dismissed", {
+          alert_id: String(id),
+          reason: updates.reason || updates.status || "dismissed",
+        });
+      }
+
       res.json(alert);
     } catch (error) {
       next(error);
@@ -526,13 +583,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assessedBy: req.user.id
       });
       const assessment = await storage.createComplianceAssessment(validatedData);
-      
-      await logAction(req.user.id, "create_assessment", "compliance_assessment", assessment.id, { 
+
+      await logAction(req.user.id, "create_assessment", "compliance_assessment", assessment.id, {
         assetId: assessment.assetId,
         frameworkId: assessment.frameworkId,
-        score: assessment.score 
+        score: assessment.score
       });
-      
+
+      if (assessment.status === "non_compliant" || assessment.score < 70) {
+        trackForUser(req.user, "policy_violation_detected", {
+          violation_type: "unauthorized_access",
+          severity: assessment.score < 40 ? "critical" : assessment.score < 70 ? "high" : "medium",
+          asset_id: String(assessment.assetId),
+          policy_name: `framework_${assessment.frameworkId}`,
+          auto_remediated: false,
+        });
+      }
+
       res.status(201).json(assessment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -559,12 +626,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user.id
       });
       const policy = await storage.createGovernancePolicy(validatedData);
-      
-      await logAction(req.user.id, "create_policy", "governance_policy", policy.id, { 
+
+      await logAction(req.user.id, "create_policy", "governance_policy", policy.id, {
         name: policy.name,
-        category: policy.category 
+        category: policy.category
       });
-      
+      trackForUser(req.user, "policy_created", {
+        policy_type: policy.category || policy.name || "custom",
+        scope: "global",
+      });
+
       res.status(201).json(policy);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -708,7 +779,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         correlation_id: `scan-${Date.now()}`,
       };
 
+      const scanStartedAt = Date.now();
       await logAction(req.user.id, "ai_scan_started", "ai_assets", scanRequest.asset_id, scanRequest);
+      trackForUser(req.user, "risk_assessment_started", {
+        asset_id: String(scanRequest.asset_id),
+        asset_type: mapAssetType(scanRequest.asset_type || asset?.type),
+        triggered_by: "manual",
+      });
       const result = await callMicroservice("ai-scanner", "/scan", "POST", scanRequest);
       let persisted = null;
       if (result?.scan_id) {
@@ -723,6 +800,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       persisted = await persistScanFindings(scanRequest.asset_id, scanRequest.model_path);
+      const refreshed = await storage.getAiAsset(scanRequest.asset_id);
+      const vulns = await storage.getVulnerabilitiesByAsset(scanRequest.asset_id);
+      const riskRank: Record<string, number> = { low: 25, medium: 50, high: 75, critical: 100 };
+      trackForUser(req.user, "risk_assessment_completed", {
+        asset_id: String(scanRequest.asset_id),
+        risk_score: riskRank[refreshed?.riskLevel || asset?.riskLevel || "medium"] ?? 50,
+        risk_level: refreshed?.riskLevel || asset?.riskLevel || "medium",
+        findings_count: vulns.length,
+        duration_seconds: Math.max(1, Math.round((Date.now() - scanStartedAt) / 1000)),
+        previous_risk_level: asset?.riskLevel || "medium",
+      });
       res.json({ ...result, service: "ai-scanner", persisted });
     } catch (error) {
       sendServiceError(res, error, next);
@@ -781,9 +869,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAction(req.user.id, "wiz_integration_started", "integrations", undefined, integrationRequest);
       if (useFixture && !hasCredentials) {
         const imported = await replayWizFixture();
+        trackForUser(req.user, "integration_connected", {
+          integration_name: "aws",
+          connection_method: "api_key",
+        });
         return res.json({ status: "completed", service: "wiz-integration", source: "fixture", ...imported });
       }
       const result = await callMicroservice("wiz-integration", "/integrate", "POST", integrationRequest);
+      trackForUser(req.user, "integration_connected", {
+        integration_name: integrationRequest.cloud_provider || "aws",
+        connection_method: "oauth",
+      });
       res.json({ ...result, service: "wiz-integration" });
     } catch (error) {
       sendServiceError(res, error, next);

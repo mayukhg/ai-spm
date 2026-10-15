@@ -5,6 +5,8 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
+.venv-mixpanel/
+.venv/
 .run/
 logs/*.log
 logs/.*-audit.json

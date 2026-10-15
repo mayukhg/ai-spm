@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { sectionFromPath, trackEvent } from "@/lib/mixpanel";
 
 interface HeaderProps {
   title: string;
@@ -38,11 +40,22 @@ export default function Header({
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [location] = useLocation();
+  const searchTrackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
     onSearch?.(query);
+    if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
+    if (query.trim().length < 2) return;
+    searchTrackTimer.current = setTimeout(() => {
+      trackEvent("search_performed", {
+        query_length: query.trim().length,
+        result_count: -1,
+        section: sectionFromPath(location),
+      });
+    }, 500);
   };
 
   const toggleTheme = () => {

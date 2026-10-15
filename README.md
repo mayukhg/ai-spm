@@ -14,6 +14,7 @@ Dashboard and API for inventorying AI assets, scoring security and data-quality 
 | Continuous health | Resident agent every **15 minutes** + **Run now**: six quality dimensions, KS drift, Isolation Forest, LOF (`/health-governance`) |
 | Async governance | OpenRouter `openai/gpt-4o-mini` synthesizes GDPR / NIST markdown when `OPENROUTER_API_KEY` is set |
 | LLM eval / observability | Arize Phoenix Option 1 tracing + governance eval dataset (`npm run phoenix:seed`, UI on **:6006**) |
+| Product analytics | Mixpanel browser + server tracking; synthetic 90-day backfill via Import API (`npm run mixpanel:synthetic`) |
 | Theme | Black high-contrast UI |
 | Regression | `npm run test:regression` (unit + API + Puppeteer headless UI) |
 
@@ -25,6 +26,7 @@ Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEAL
 | --- | --- |
 | [Phoenix eval framework (PM + hosting + parameters)](docs/PHOENIX_EVAL_FRAMEWORK.md) | Why we evaluate the async LLM path, how Phoenix is hosted, eval parameters and persona rationale |
 | [Phoenix tracing setup (Option 1)](docs/PHOENIX_OBSERVABILITY.md) | Tracer bootstrap, OpenRouter instrumentation, env vars, seed commands |
+| [Mixpanel product analytics board](https://mixpanel.com/project/4070033/view/4566488/app/boards#id=11588225) | Live dashboard for funnel, retention, and AI-SPM product events |
 
 ## Demo assets
 
@@ -34,6 +36,34 @@ Deep design notes: [`docs/CONTINUOUS_HEALTH_GOVERNANCE.md`](docs/CONTINUOUS_HEAL
 | [PM interview walkthrough video](docs/interview/AI_SPM_PM_Demo.mp4) | Silent ~3.2 min live app demo with burned-in captions |
 | [Video player](docs/interview/PM_DEMO_PLAYER.html) | Browser player + interview tips for the walkthrough |
 | [Phoenix eval fixtures](fixtures/synthetic/phoenix/) | Governance eval dataset, synthetic outputs, and latest `eval-runs.json` scorecard |
+| [Mixpanel analytics dashboard](https://mixpanel.com/project/4070033/view/4566488/app/boards#id=11588225) | Public product-analytics board (auth, assets, risk, alerts, compliance) |
+
+## Mixpanel product analytics
+
+Product usage is instrumented with Mixpanel (browser SDK on the React client + Node SDK on Express). Events cover auth, dashboard navigation, search, AI asset lifecycle, risk assessments, policy/compliance, alerts, and integrations. Each event includes a `$insert_id` to prevent duplicate ingestion.
+
+**Dashboard:** [AI-SPM Mixpanel board](https://mixpanel.com/project/4070033/view/4566488/app/boards#id=11588225)
+
+| Piece | Location |
+| --- | --- |
+| Client helper | [`client/src/lib/mixpanel.ts`](client/src/lib/mixpanel.ts) |
+| Server helper | [`server/analytics/mixpanel.ts`](server/analytics/mixpanel.ts) |
+| Synthetic 90-day backfill | [`scripts/generate_mixpanel_synthetic_data.py`](scripts/generate_mixpanel_synthetic_data.py) |
+
+```bash
+# .env (do not commit) — see .env.example
+MIXPANEL_PROJECT_TOKEN=...
+MIXPANEL_SERVICE_ACCOUNT_USER=...
+MIXPANEL_SERVICE_ACCOUNT_PASS=...
+MIXPANEL_PROJECT_ID=4070033
+
+# Optional: seed ~50 users / thousands of backdated events via Import API
+python3 -m venv .venv-mixpanel && .venv-mixpanel/bin/pip install mixpanel faker python-dotenv requests
+.venv-mixpanel/bin/python scripts/generate_mixpanel_synthetic_data.py
+# or: npm run mixpanel:synthetic
+```
+
+Vite exposes only `MIXPANEL_PROJECT_TOKEN` to the browser as `VITE_MIXPANEL_TOKEN`. Service-account credentials stay server-side for the Import API.
 
 ## Architecture rule
 
@@ -71,6 +101,11 @@ Async governance     →  OpenRouter LLM            (natural-language compliance
 ### Microservices (optional)
 - AI scanner `:8001`, data integrity `:8002`, Wiz integration `:8003`, compliance engine `:8004`
 - Gateway prefers `AI_SCANNER_URL`, `DATA_INTEGRITY_URL`, `WIZ_INTEGRATION_URL`, `COMPLIANCE_ENGINE_URL`
+
+### Product analytics (Mixpanel)
+- Client + server event tracking for auth, assets, risk, policies, alerts, and navigation
+- Live board: [mixpanel.com/project/4070033/…/boards#id=11588225](https://mixpanel.com/project/4070033/view/4566488/app/boards#id=11588225)
+- Synthetic journey generator for demos and dashboard population (`npm run mixpanel:synthetic`)
 
 ## Quick start
 
@@ -454,6 +489,12 @@ OPENROUTER_API_KEY=
 # WIZ_CLIENT_SECRET=
 # SPLUNK_ENDPOINT=
 # SPLUNK_TOKEN=
+
+# Mixpanel product analytics (dashboard: https://mixpanel.com/project/4070033/view/4566488/app/boards#id=11588225)
+# MIXPANEL_PROJECT_TOKEN=
+# MIXPANEL_SERVICE_ACCOUNT_USER=
+# MIXPANEL_SERVICE_ACCOUNT_PASS=
+# MIXPANEL_PROJECT_ID=
 ```
 
 ### Installation Steps

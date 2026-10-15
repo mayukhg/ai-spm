@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/mixpanel";
 import type { AiAsset, InsertAiAsset } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -509,7 +510,17 @@ export default function AiAssets() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  trackEvent("ai_asset_viewed", {
+                                    asset_id: String(asset.id),
+                                    asset_type: asset.type,
+                                    risk_level: asset.riskLevel,
+                                  })
+                                }
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="sm">

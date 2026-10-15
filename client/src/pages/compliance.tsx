@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/mixpanel";
 import type { 
   ComplianceFramework, 
   ComplianceAssessment, 
@@ -89,6 +90,11 @@ export default function Compliance() {
       a.download = `compliance-overview-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      trackEvent("compliance_report_exported", {
+        report_type: "custom",
+        format: "json",
+        asset_count: Array.isArray(data) ? data.length : 0,
+      });
       toast({ title: "Export ready", description: "Compliance overview downloaded as JSON." });
     } catch (error) {
       toast({

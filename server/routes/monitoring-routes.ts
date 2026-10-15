@@ -208,13 +208,25 @@ router.post('/alerts/:alertId/resolve', requireAuth, async (req, res) => {
     const resolvedBy = (req as any).user?.id || 'unknown';
     
     await notificationManager.resolveAlert(alertId, resolvedBy);
-    
+
     logger.audit('alert_resolved', `alert:${alertId}`, {
       alertId,
       resolvedBy,
       timestamp: new Date().toISOString()
     });
-    
+
+    try {
+      const { trackServerEvent } = await import('../analytics/mixpanel');
+      trackServerEvent(resolvedBy, 'alert_resolved', {
+        alert_id: alertId,
+        resolution_type: 'manual',
+        time_to_resolve_minutes: 0,
+        severity: 'unknown',
+      });
+    } catch {
+      // analytics must not block alert resolution
+    }
+
     res.json({
       success: true,
       message: `Alert ${alertId} resolved successfully`,

@@ -1,10 +1,12 @@
-import { Switch, Route } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import { identifyUser, sectionFromPath, trackEvent } from "@/lib/mixpanel";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth-page";
 import AiAssets from "@/pages/ai-assets";
@@ -20,7 +22,31 @@ import PromptChecks from "@/pages/prompt-checks";
 import HealthGovernance from "@/pages/health-governance";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+function AnalyticsRouter() {
+  const [location] = useLocation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      identifyUser(String(user.id), {
+        $email: user.email,
+        $name: user.fullName,
+        role: user.role,
+        $created: user.createdAt,
+        department: user.department ?? undefined,
+        username: user.username,
+      });
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (location.startsWith("/auth")) return;
+    trackEvent("dashboard_viewed", {
+      section: sectionFromPath(location),
+      path: location,
+    });
+  }, [location]);
+
   return (
     <Switch>
       {/* Public routes */}
@@ -52,7 +78,7 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <Toaster />
-          <Router />
+          <AnalyticsRouter />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

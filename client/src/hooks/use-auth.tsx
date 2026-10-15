@@ -7,6 +7,18 @@ import {
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { identifyUser, resetMixpanel, trackEvent } from "@/lib/mixpanel";
+
+function identifyFromUser(user: SelectUser) {
+  identifyUser(String(user.id), {
+    $email: user.email,
+    $name: user.fullName,
+    role: user.role,
+    $created: user.createdAt,
+    department: user.department ?? undefined,
+    username: user.username,
+  });
+}
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -43,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      identifyFromUser(user);
+      trackEvent("user_logged_in", { method: "email" });
       toast({
         title: "Welcome back!",
         description: `Logged in as ${user.fullName}`,
@@ -64,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      identifyFromUser(user);
+      trackEvent("user_signed_up", {
+        method: "email",
+        plan: "free",
+        org_name: user.department || "unknown",
+      });
+      trackEvent("user_logged_in", { method: "email" });
       toast({
         title: "Account created successfully!",
         description: `Welcome to AI-SPM, ${user.fullName}`,
@@ -85,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
       queryClient.clear(); // Clear all cached data on logout
+      resetMixpanel();
       toast({
         title: "Logged out successfully",
         description: "See you next time!",
