@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { detect, labelFromSpans } from "./prompt-detector";
 
 export const fixtureRoot = path.resolve(process.cwd(), "fixtures/synthetic");
 
@@ -181,12 +182,7 @@ export function nistEvidence(modelCardPath: string) {
   };
 }
 
-const LLM_RULES: { category: "prompt_injection" | "jailbreak"; phrase: string }[] = [
-  { category: "prompt_injection", phrase: "ignore the previous instructions" },
-  { category: "prompt_injection", phrase: "print the system prompt" },
-  { category: "jailbreak", phrase: "developer mode" },
-  { category: "jailbreak", phrase: "bypass your safety policy" },
-];
+// v1 matched 4 exact phrases (LLM_RULES); replaced by prompt-detector.ts.
 
 export type LlmToken = {
   text: string;
@@ -206,7 +202,7 @@ export type LlmClassification = {
   agreesWithExpected: boolean;
   title: string;
   summary: string;
-  spans: { start: number; end: number; phrase: string; category: "prompt_injection" | "jailbreak" }[];
+  spans: { start: number; end: number; phrase: string; category: "prompt_injection" | "jailbreak"; rule?: string }[];
   tokens: LlmToken[];
 };
 
@@ -225,30 +221,15 @@ export function classifyPrompt(
   prompt: { id: string; expected: string; text: string },
   threshold: number,
 ): LlmClassification {
-  const lower = prompt.text.toLowerCase();
-  const spans: LlmClassification["spans"] = [];
-  for (const rule of LLM_RULES) {
-    let from = 0;
-    while (from < lower.length) {
-      const index = lower.indexOf(rule.phrase, from);
-      if (index < 0) break;
-      spans.push({
-        start: index,
-        end: index + rule.phrase.length,
-        phrase: rule.phrase,
-        category: rule.category,
-      });
-      from = index + rule.phrase.length;
-    }
-  }
-
-  const injectionCount = spans.filter((span) => span.category === "prompt_injection").length;
-  const jailbreakCount = spans.filter((span) => span.category === "jailbreak").length;
-  const label: LlmClassification["label"] = jailbreakCount > injectionCount
-    ? "jailbreak"
-    : injectionCount > 0
-      ? "prompt_injection"
-      : "benign";
+  // v2 rule-based detector: normalisation + verb/target patterns (prompt-detector.ts).
+  const spans: LlmClassification["spans"] = detect(prompt.text).map(({ start, end, phrase, category, rule }) => ({
+    start,
+    end,
+    phrase,
+    category,
+    rule,
+  }));
+  const label: LlmClassification["label"] = labelFromSpans(spans);
   const score = label === "benign" ? 0.05 : 0.95;
   const decision = label !== "benign" && score >= threshold ? "block" : "allow";
   const tokens: LlmToken[] = tokenize(prompt.text).map((token) => {

@@ -18,6 +18,8 @@ import adversarialDetectionRoutes from './routes/adversarial-detection-routes';
 import { dataQualityRoutes } from './data-quality/data-quality-routes';
 import { evidenceAssessment, persistDatasetCheck, persistLlmClassifications, persistScanFindings, replayWizFixture } from './analysis/persist-results';
 import { classifyLlmPrompts, siemEvent } from './analysis/synthetic-analysis';
+import { detect, labelFromSpans } from './analysis/prompt-detector';
+import { classifyPromptHybrid } from './analysis/prompt-classifier-model';
 import {
   getResidentAgentStatus,
   listRecentCycles,
@@ -391,6 +393,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/llm/classifications", requireAuth, async (req, res, next) => {
     try {
       res.json(classifyLlmPrompts());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Classify one prompt: rule spans for highlighting plus a model verdict on intent.
+  // Async second stage; the GET listing above stays rule-only and model-free.
+  app.post("/api/llm/classify", requireAuth, async (req, res, next) => {
+    try {
+      const text = typeof req.body.text === "string" ? req.body.text.slice(0, 8000) : "";
+      if (!text.trim()) return res.status(400).json({ error: "text is required" });
+      if (req.body.mode === "rules") {
+        const spans = detect(text);
+        return res.json({ label: labelFromSpans(spans), source: "rules", rules: { label: labelFromSpans(spans), spans } });
+      }
+      res.json(await classifyPromptHybrid(text));
     } catch (error) {
       next(error);
     }
