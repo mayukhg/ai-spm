@@ -2,6 +2,8 @@
 
 Product-oriented documentation for how we host, instrument, and evaluate the **async governance LLM** path — the only place this product deliberately calls a large language model.
 
+Langfuse version of this framework, with live results: [`LANGFUSE_EVAL_FRAMEWORK.md`](./LANGFUSE_EVAL_FRAMEWORK.md).
+
 Companion technical tracing notes: [`PHOENIX_OBSERVABILITY.md`](./PHOENIX_OBSERVABILITY.md).
 
 ---

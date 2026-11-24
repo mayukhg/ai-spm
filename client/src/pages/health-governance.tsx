@@ -51,6 +51,56 @@ interface GovernanceReport {
   frameworks: string[];
   createdAt: string;
   completedAt?: string | null;
+  langfuseTraceId?: string | null;
+}
+
+// Reviewer verdicts are stored as Langfuse scores on the report's trace
+// (server/observability/langfuse.ts REVIEW_REASONS).
+const REVIEW_REASONS: { value: string; label: string }[] = [
+  { value: "fabricated_control", label: "Claims a control with no evidence" },
+  { value: "wrong_numbers", label: "Numbers do not match the evidence" },
+  { value: "missed_failure", label: "Misses a failing metric" },
+  { value: "overstated_risk", label: "Overstates the risk" },
+  { value: "missing_section", label: "Missing a required section" },
+  { value: "other", label: "Other" },
+];
+
+function ReportReview({ report }: { report: GovernanceReport }) {
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [reason, setReason] = useState(REVIEW_REASONS[0].value);
+  if (!report.langfuseTraceId) return null;
+  const submit = async (approved: boolean) => {
+    setState("saving");
+    try {
+      await apiRequest("POST", `/api/governance/reports/${report.id}/review`, { approved, reason: approved ? undefined : reason });
+      setState("saved");
+    } catch {
+      setState("error");
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted-foreground">Reviewer verdict:</span>
+      <Button size="sm" variant="outline" disabled={state === "saving"} onClick={() => submit(true)}>
+        Approve for audit
+      </Button>
+      <select
+        aria-label="Reason for requesting changes"
+        className="h-8 rounded-md border border-border bg-transparent px-2"
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+      >
+        {REVIEW_REASONS.map((item) => (
+          <option key={item.value} value={item.value}>{item.label}</option>
+        ))}
+      </select>
+      <Button size="sm" variant="outline" disabled={state === "saving"} onClick={() => submit(false)}>
+        Request changes
+      </Button>
+      {state === "saved" && <span className="text-muted-foreground">Saved</span>}
+      {state === "error" && <span className="text-red-400">Could not save the verdict</span>}
+    </div>
+  );
 }
 
 export default function HealthGovernance() {
@@ -283,9 +333,12 @@ export default function HealthGovernance() {
                 <p className="text-sm text-muted-foreground">OpenRouter is writing report #{selectedReport.id}…</p>
               )}
               {selectedReport?.bodyMarkdown && (
-                <div className="mt-4 rounded-md border border-border p-4 whitespace-pre-wrap text-sm leading-6 bg-zinc-950">
-                  {selectedReport.bodyMarkdown}
-                </div>
+                <>
+                  <div className="mt-4 rounded-md border border-border p-4 whitespace-pre-wrap text-sm leading-6 bg-zinc-950">
+                    {selectedReport.bodyMarkdown}
+                  </div>
+                  <ReportReview key={selectedReport.id} report={selectedReport} />
+                </>
               )}
             </CardContent>
           </Card>

@@ -17,7 +17,8 @@ import {
   monitoringCycles,
 } from "@shared/schema";
 import { withSpan } from "@arizeai/phoenix-otel";
-import { chatCompletion, openRouterConfigured, openRouterModel } from "./openrouter-client";
+import { openRouterConfigured, openRouterModel } from "./openrouter-client";
+import { generateGovernanceNarrative } from "./report-synthesis";
 import { logger } from "../monitoring/logger";
 
 async function ensureReportsTable() {
@@ -40,6 +41,7 @@ async function ensureReportsTable() {
       completed_at timestamp
     )
   `);
+  await pool.query(`ALTER TABLE governance_reports ADD COLUMN IF NOT EXISTS langfuse_trace_id text`);
 }
 
 async function collectEvidence(assetId: number) {
@@ -204,32 +206,9 @@ const synthesizeReport = withSpan(
   const evidence = await collectEvidence(assetId);
   const started = Date.now();
 
-  const completion = await chatCompletion(
-    [
-      {
-        role: "system",
-        content:
-          "You are a compliance documentation agent. Write clear, audit-ready markdown for external regulators. Use only the evidence JSON provided. Do not invent controls that lack evidence. Structure the document with Executive Summary, Evidence Summary, GDPR mapping, NIST AI RMF mapping, Gaps, and Recommended Remediation.",
-      },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
-            assetName,
-            frameworks,
-            evidence,
-            instructions:
-              "Synthesize a professional compliance narrative. Call out statistical monitoring results (KS drift, Isolation Forest, LOF, six quality dimensions) as continuous monitoring evidence.",
-          },
-          null,
-          2,
-        ),
-      },
-    ],
-    { temperature: 0.2, maxTokens: 2500 },
-  );
+  const completion = await generateGovernanceNarrative({ assetName, frameworks, evidence });
 
-  const bodyMarkdown = completion.content;
+  const bodyMarkdown = completion.markdown;
   await db
     .update(governanceReports)
     .set({
@@ -241,6 +220,7 @@ const synthesizeReport = withSpan(
       elapsedMs: Date.now() - started,
       completedAt: new Date(),
       error: null,
+      langfuseTraceId: completion.traceId ?? null,
     })
     .where(eq(governanceReports.id, reportId));
 

@@ -31,6 +31,7 @@ import {
   listGovernanceReports,
   startGovernanceReport,
 } from './governance/async-compliance';
+import { recordReportReview } from './observability/langfuse';
 import {
   mapAssetType,
   mapFramework,
@@ -511,6 +512,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const report = await getGovernanceReport(parseInt(req.params.id));
       if (!report) return res.status(404).json({ error: "Report not found" });
       res.json(report);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Compliance reviewer verdict on a generated report, stored as Langfuse scores
+  // on the report's trace (report_approved, report_review_reason).
+  app.post("/api/governance/reports/:id/review", requireAuth, async (req, res, next) => {
+    try {
+      const report = await getGovernanceReport(parseInt(req.params.id));
+      if (!report) return res.status(404).json({ error: "Report not found" });
+      if (!report.langfuseTraceId) {
+        return res.status(409).json({ error: "This report has no Langfuse trace (Langfuse was off when it ran)" });
+      }
+      const approved = Boolean(req.body.approved);
+      const comment = typeof req.body.comment === "string" ? req.body.comment.slice(0, 1000) : undefined;
+      const stored = await recordReportReview(report.langfuseTraceId, approved, req.body.reason, comment);
+      if (!stored) return res.status(503).json({ error: "Langfuse is not configured" });
+      await logAction(req.user!.id, "governance_report_reviewed", "ai_assets", report.assetId ?? undefined, {
+        reportId: report.id,
+        approved,
+        reason: req.body.reason,
+      });
+      res.json({ success: true });
     } catch (error) {
       next(error);
     }

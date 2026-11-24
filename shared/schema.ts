@@ -154,6 +154,7 @@ export const governanceReports = pgTable("governance_reports", {
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+  langfuseTraceId: text("langfuse_trace_id"), // set when Langfuse tracing is on
 });
 
 // Resident agent monitoring cycle results (fast-math only)

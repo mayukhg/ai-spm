@@ -1,6 +1,7 @@
 import "dotenv/config";
 // Phoenix Option 1 tracing — must load before OpenAI/OpenRouter client imports
 import { shutdownPhoenixTracing } from "./observability/tracer";
+import { initLangfuse, shutdownLangfuse } from "./observability/langfuse";
 import express, { type Request, Response, NextFunction } from "express";
 import session from 'express-session';
 import passport from 'passport';
@@ -15,6 +16,9 @@ import { monitoringRoutes } from './routes/monitoring-routes';
 import { threatConfigRoutes } from './routes/threat-config-routes';
 import complianceRoutes from './routes/compliance-routes';
 import { startResidentAgent, stopResidentAgent } from './governance/resident-agent';
+
+// Langfuse traces governance reports when LANGFUSE_* keys are set; no-op otherwise.
+initLangfuse();
 
 const app = express();
 
@@ -203,6 +207,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
       });
       try {
         await shutdownPhoenixTracing();
+        await shutdownLangfuse();
       } catch (err) {
         console.error("Phoenix tracer shutdown error:", err);
       }
