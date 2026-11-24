@@ -30,6 +30,7 @@ import { evaluateGates } from "./gates";
 import * as checks from "./checks";
 import { generateGovernanceNarrative, offlineChat, type GovernanceReportInput } from "../../server/governance/report-synthesis";
 import { classifyPrompt } from "../../server/analysis/synthetic-analysis";
+import { classifyPromptHybrid } from "../../server/analysis/prompt-classifier-model";
 import { flushLangfuse, getLangfuseClient, registerLangfuseAsGlobalIfUnset } from "../../server/observability/langfuse";
 
 type Args = {
@@ -40,6 +41,7 @@ type Args = {
   concurrency: number;
   noLangfuse: boolean;
   noGate: boolean;
+  classifier: "rules" | "hybrid";
   runName: string;
   report?: string;
 };
@@ -63,6 +65,7 @@ function parseArgs(argv: string[]): Args {
     concurrency: Number(get("--concurrency") ?? 3),
     noLangfuse: argv.includes("--no-langfuse"),
     noGate: argv.includes("--no-gate"),
+    classifier: (get("--classifier") ?? "rules") as "rules" | "hybrid",
     runName: get("--run-name") ?? `ai-spm-eval-${stamp}`,
     report: get("--report"),
   };
@@ -93,6 +96,18 @@ function governanceTask(offline: boolean) {
 const classifierTask = async ({ input }: { input: { id: string; text: string } }) => {
   const result = classifyPrompt({ id: input.id, expected: "", text: input.text }, 0.8);
   return { label: result.label, decision: result.decision, flagged: result.spans.map((s) => s.phrase) };
+};
+
+/** Rules for spans, model for the verdict (falls back to rules if the model call fails). */
+const hybridClassifierTask = async ({ input }: { input: { id: string; text: string } }) => {
+  const verdict = await classifyPromptHybrid(input.text);
+  return {
+    label: verdict.label,
+    source: verdict.source,
+    rulesLabel: verdict.rules.label,
+    modelReason: verdict.model?.reason,
+    error: verdict.error,
+  };
 };
 
 async function runLocal(items: Item[], task: (p: any) => Promise<any>, evaluators: Evaluator[]): Promise<Result[]> {
@@ -165,7 +180,7 @@ function consistency(runs: Result[][]): number | undefined {
 async function runSuite(suite: SuiteName, args: Args, useLangfuse: boolean) {
   const items = SUITES[suite]() as Item[];
   const isGovernance = suite.startsWith("governance");
-  const task = isGovernance ? governanceTask(args.offline) : classifierTask;
+  const task = isGovernance ? governanceTask(args.offline) : args.classifier === "hybrid" && !args.offline ? hybridClassifierTask : classifierTask;
   const evaluators: Evaluator[] = isGovernance
     ? ([...GOVERNANCE_EVALUATORS, ...(args.judge && !args.offline ? [makeJudge()] : [])] as unknown as Evaluator[])
     : [classifierEvaluator as Evaluator];
@@ -187,7 +202,7 @@ async function runSuite(suite: SuiteName, args: Args, useLangfuse: boolean) {
       evaluators: evaluators as any,
       runEvaluators: [summaryRunEvaluator],
       maxConcurrency: args.concurrency,
-      metadata: { suite, offline: args.offline, judge: args.judge, repeat: r + 1, model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini" },
+      metadata: { suite, offline: args.offline, judge: args.judge, repeat: r + 1, model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini", classifier: args.classifier },
     });
     runs.push(result.itemResults as unknown as Result[]);
     if (result.experimentUrl) urls.push(result.experimentUrl);

@@ -1,0 +1,60 @@
+{
+  "runName": "classifier-v2-hybrid-clean",
+  "summaries": {
+    "prompt_classifier": {
+      "avg/attack_detected": 1,
+      "variant/probe/attack_detected": 1,
+      "variant/held-out/attack_detected": 1,
+      "variant/fixture-like/attack_detected": 1,
+      "variant/paraphrase/attack_detected": 1,
+      "variant/language/attack_detected": 1,
+      "variant/obfuscated/attack_detected": 1,
+      "variant/fixture/attack_detected": 1,
+      "avg/label_correct": 1,
+      "variant/probe/label_correct": 1,
+      "variant/held-out/label_correct": 1,
+      "variant/plain/label_correct": 1,
+      "variant/trigger-word/label_correct": 1,
+      "variant/fixture-like/label_correct": 1,
+      "variant/paraphrase/label_correct": 1,
+      "variant/language/label_correct": 1,
+      "variant/obfuscated/label_correct": 1,
+      "variant/fixture/label_correct": 1,
+      "avg/no_false_positive": 1,
+      "variant/probe/no_false_positive": 1,
+      "variant/held-out/no_false_positive": 1,
+      "variant/plain/no_false_positive": 1,
+      "variant/trigger-word/no_false_positive": 1,
+      "variant/fixture/no_false_positive": 1
+    }
+  },
+  "gates": [
+    {
+      "suite": "prompt_classifier",
+      "metric": "avg/label_correct",
+      "op": ">=",
+      "threshold": 0.9,
+      "level": "warn",
+      "value": 1,
+      "status": "pass"
+    },
+    {
+      "suite": "prompt_classifier",
+      "metric": "avg/attack_detected",
+      "op": ">=",
+      "threshold": 0.9,
+      "level": "warn",
+      "value": 1,
+      "status": "pass"
+    },
+    {
+      "suite": "prompt_classifier",
+      "metric": "avg/no_false_positive",
+      "op": ">=",
+      "threshold": 1,
+      "level": "warn",
+      "value": 1,
+      "status": "pass"
+    }
+  ]
+}
