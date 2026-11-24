@@ -86,6 +86,7 @@ function governanceTask(offline: boolean) {
         costUsd: result.costUsd,
         promptTokens: result.usage?.prompt_tokens,
         completionTokens: result.usage?.completion_tokens,
+        gapsAdded: result.gapsAdded,
       };
     } catch (error) {
       return { markdown: "", error: (error as Error).message, latencyS: (performance.now() - started) / 1000 };
@@ -238,7 +239,7 @@ function scorecard(outcomes: Record<string, Awaited<ReturnType<typeof runSuite>>
     if (extras.length) lines.push("", extras.map((k) => `\`${k}\` ${fmt(o.summary[k])}`).join(" · "));
     const failures = o.last.flatMap((r) =>
       r.evaluations
-        .filter((e) => typeof e.value === "number" && (e.value as number) < 1 && !["latency_s", "cost_usd", "report_words", "task_error", "judge_error"].includes(e.name))
+        .filter((e) => typeof e.value === "number" && (e.value as number) < 1 && !["latency_s", "cost_usd", "report_words", "task_error", "judge_error", "gap_guard_fired"].includes(e.name))
         .map((e) => `| ${r.item.metadata?.caseId} | \`${e.name}\` | ${fmt(e.value as number)} | ${String(e.comment ?? "").replace(/\|/g, "/").replace(/\n/g, " ")} |`),
     );
     if (failures.length) lines.push("", "Cases below 1.0 (last repeat):", "", "| Case | Score | Value | Why |", "|---|---|---|---|", ...failures);

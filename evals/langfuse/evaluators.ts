@@ -20,6 +20,7 @@ export type GovernanceOutput = {
   costUsd?: number;
   promptTokens?: number;
   completionTokens?: number;
+  gapsAdded?: string[];
   error?: string;
 };
 
@@ -35,6 +36,8 @@ export const structureEvaluator: GovEvaluator = async ({ input, output }) => {
   return [
     ...score("structure", checks.structure(md, input.frameworks)),
     ...score("no_unrequested_framework", checks.noUnrequestedFramework(md, input.frameworks)),
+    ...score("valid_clause_refs", checks.validClauseRefs(md)),
+    ...score("mapping_depth", checks.mappingDepth(md, input.frameworks, input.evidence)),
   ];
 };
 
@@ -70,6 +73,8 @@ export const operationsEvaluator: GovEvaluator = async ({ output }) => {
     { name: "latency_s", value: out.latencyS ?? 0 },
     { name: "cost_usd", value: out.costUsd ?? 0 },
     { name: "report_words", value: checks.wordCount(out.markdown) },
+    // How often the model left a failing signal out of Gaps (the guard then added it).
+    { name: "gap_guard_fired", value: out.gapsAdded?.length ? 1 : 0, comment: out.gapsAdded?.join(" ") },
   ];
 };
 
