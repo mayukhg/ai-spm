@@ -312,3 +312,61 @@ export function noPhantomInjectionFlag(markdown: string, evidence: GovernanceEvi
   const match = (markdown || "").match(INJECTION_FLAG);
   return match ? [0, `flags an embedded instruction that is not in the evidence: "${match[0]}"`] : [1, "no phantom injection warning"];
 }
+
+// ------------------------------------------------------------ framework mappings
+
+// NIST AI RMF 1.0 subcategory counts per category, e.g. MEASURE 2 has 2.1-2.13.
+const NIST_SUBCATEGORIES: Record<string, number[]> = {
+  GOVERN: [7, 3, 2, 3, 2, 2],
+  MAP: [6, 3, 5, 2, 2],
+  MEASURE: [3, 13, 3, 3],
+  MANAGE: [4, 4, 2, 3],
+};
+const NIST_REF = /\b(GOVERN|GV|MAP|MP|MEASURE|MS|MANAGE|MG)[\s-]+(\d+)\.(\d+)\b/g;
+const GDPR_REF = /\b(?:Art(?:icle)?\.?|Articles?)\s*(\d+)/gi;
+const FUNCTION_ALIAS: Record<string, string> = { GV: "GOVERN", MP: "MAP", MS: "MEASURE", MG: "MANAGE" };
+
+/** Every cited GDPR article (1-99) and NIST AI RMF subcategory must exist. */
+export function validClauseRefs(markdown: string): Check {
+  const invalid: string[] = [];
+  for (const m of (markdown || "").matchAll(GDPR_REF)) {
+    const n = Number(m[1]);
+    if (n < 1 || n > 99) invalid.push(m[0]);
+  }
+  for (const m of (markdown || "").matchAll(NIST_REF)) {
+    const fn = FUNCTION_ALIAS[m[1]] ?? m[1];
+    const max = NIST_SUBCATEGORIES[fn]?.[Number(m[2]) - 1];
+    if (!max || Number(m[3]) < 1 || Number(m[3]) > max) invalid.push(m[0]);
+  }
+  return invalid.length ? [0, `clause ids that do not exist: ${[...new Set(invalid)].join(", ")}`] : [1, "all cited clauses exist"];
+}
+
+/**
+ * Depth of each requested framework mapping: lines in its section that cite a
+ * clause AND name evidence (a metric, method or value). Needs at least 2.
+ */
+export function mappingDepth(markdown: string, frameworks: string[], evidence: GovernanceEvidence): Check {
+  const evidenceTerms = new Set<string>();
+  for (const row of evidence.quality ?? []) evidenceTerms.add(String(row.metricType).toLowerCase());
+  if ((evidence.drift ?? []).length) ["drift", "ks", "kolmogorov"].forEach((t) => evidenceTerms.add(t));
+  if ((evidence.anomalies ?? []).length) ["anomal", "isolation forest", "lof", "outlier"].forEach((t) => evidenceTerms.add(t));
+  if ((evidence.assessments ?? []).length) ["assessment", "finding"].forEach((t) => evidenceTerms.add(t));
+  const numbers = [...evidenceNumbers(evidence)].map(String);
+  const wanted = [
+    frameworks.some((f) => /gdpr/i.test(f)) ? { name: "GDPR", heading: /gdpr/i, ref: /\bArt(?:icle)?\.?\s*\d+/i } : null,
+    frameworks.some((f) => /nist/i.test(f)) ? { name: "NIST", heading: /nist/i, ref: /\b(GOVERN|MAP|MEASURE|MANAGE)\s+\d+\.\d+/i } : null,
+  ].filter(Boolean) as { name: string; heading: RegExp; ref: RegExp }[];
+  if (!wanted.length) return [null, "no framework requested"];
+  if (!evidenceTerms.size) return [null, "no evidence to map"];
+  const shallow: string[] = [];
+  const all = sections(markdown);
+  for (const fw of wanted) {
+    const body = all.filter((sec) => fw.heading.test(sec.heading)).map((sec) => sec.body).join("\n");
+    const linked = body.split("\n").filter((line) => {
+      const l = line.toLowerCase();
+      return fw.ref.test(line) && ([...evidenceTerms].some((t) => l.includes(t)) || numbers.some((n) => n.length > 1 && l.includes(n)));
+    });
+    if (linked.length < 2) shallow.push(`${fw.name} (${linked.length} evidence-linked clauses)`);
+  }
+  return [(wanted.length - shallow.length) / wanted.length, shallow.length ? `shallow mapping: ${shallow.join(", ")}` : "each framework ties at least 2 clauses to evidence"];
+}

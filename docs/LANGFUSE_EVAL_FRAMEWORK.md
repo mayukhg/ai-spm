@@ -27,6 +27,9 @@ Deterministic checks are in `evals/langfuse/checks.ts`. Every check has unit tes
 | Score | Fails when | Gate |
 |---|---|---|
 | `structure` | A required section is missing (sections depend on the requested frameworks) | block |
+| `valid_clause_refs` | The report cites a GDPR article outside 1–99 or a NIST AI RMF subcategory that does not exist (e.g. MEASURE 5.2) | block |
+| `mapping_depth` | A requested framework section ties fewer than 2 clauses to a named metric or evidence value | warn |
+| `gap_guard_fired` | Informational rate: the model left a failing signal out of Gaps and the gap-coverage guard added it | — |
 | `no_unrequested_framework` | A GDPR-only report maps NIST, or the reverse | block |
 | `no_invented_numbers` | A metric value or count is not in the evidence. Allowed: percent forms, totals of two counts, regulation references (Article 5, GOVERN 1.1), and remediation targets | block |
 | `no_false_assurance` | Any certification or passed-audit claim; a compliance or "no gaps" claim over failing evidence; "no issues detected" from empty evidence | block |
@@ -112,4 +115,28 @@ v1 and v2 rules miss different benign prompts. v1 flags "developer mode" on a ph
 The v2 rules still miss indirect attacks (hypotheticals, base64 payloads, "grandma" and "opposite day" framings). They also flag customers withdrawing their own earlier instructions ("disregard the earlier instructions I sent about gift wrapping"). Only the model stage reads intent, so use it wherever a few hundred milliseconds of latency is acceptable. 39 prompts is a small set: validate on real Prompt Checks traffic before relying on these numbers.
 
 **Still open:**
-- **Audit readiness.** The judge scores it about 0.75: GDPR and NIST mappings are accurate but shallow, without article-level ties to evidence. That is a prompt or model quality question, not a safety one.
+- Validate the prompt classifier on real Prompt Checks traffic; 39 prompts is a small set.
+
+## Framework mapping depth
+
+The judge rated audit readiness about 0.75: mappings were accurate but generic, with no clause-level ties to evidence. Two changes:
+
+1. **Clause tables.** The prompt now lists the clauses the report may cite: GDPR Art. 5(1)(d), 5(1)(e), 5(2), 24, 25, 30, 32, 35, and NIST AI RMF GOVERN 1.5, MEASURE 1.1, 2.4, 3.1 and MANAGE 4.1 (`GDPR_CLAUSES` / `NIST_CLAUSES` in `report-synthesis.ts`). Each mapping is a table of Clause | Requirement | Evidence | Status (Supported / Gap / Not evidenced), with at least three clauses per framework.
+2. **Gap-coverage guard** (`server/governance/gap-guard.ts`). In `mapping-depth-v1`, gpt-4o-mini dropped *uniqueness (warn, 0.70)* from Gaps in 1 of 3 repeats. Because the evidence is structured, a deterministic guard now appends any missing failing signal to Gaps after generation, and records what it added on the trace (`gapsAdded`) and as the `gap_guard_fired` score.
+
+| Metric | prompt-fix-v5 | mapping-depth-v2 (3 repeats) |
+|---|---|---|
+| golden judge audit readiness | 0.75 | **0.96** |
+| adversarial judge audit readiness | 0.94 | **0.97** |
+| golden judge failure coverage | 0.94 | 0.98 |
+| golden judge evidence grounding | 1.00 | 0.99 |
+| `valid_clause_refs` | not measured | 1.00 |
+| `mapping_depth` | not measured | 0.83 (thin-evidence cases tie only 1 clause; warn) |
+| golden `failures_called_out` | 1.00 | 1.00 |
+| golden consistency | 0.83 | **1.00** |
+| guard fired (golden / adversarial) | — | 0 / 0.33 |
+| report length | 262 words | 409 words |
+| golden p95 latency | 8.9 s | 12.6 s |
+| golden cost per run | $0.011 | $0.018 |
+
+The deeper mappings make reports about 55% longer, add about 3.5 s of p95 latency, and cost about 1.6× more per report: still under $0.002 each with gpt-4o-mini, on the async path.

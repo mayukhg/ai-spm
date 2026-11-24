@@ -9,6 +9,7 @@
 import { startActiveObservation } from "@langfuse/tracing";
 import { chatCompletion, openRouterModel, type OpenRouterChatMessage, type OpenRouterResult } from "./openrouter-client";
 import { costUsd, initLangfuse, langfuseEnabled } from "../observability/langfuse";
+import { ensureGapCoverage } from "./gap-guard";
 
 export type GovernanceEvidence = {
   quality?: { metricType: string; metricValue: unknown; status?: string | null; collectedAt?: unknown }[];
@@ -42,6 +43,8 @@ export type GovernanceReportResult = {
   usage?: OpenRouterResult["usage"];
   costUsd?: number;
   traceId?: string;
+  /** Lines the gap-coverage guard appended because the model left them out of Gaps. */
+  gapsAdded?: string[];
 };
 
 /** The prompt before the Langfuse evals (kept for comparison runs and docs). */
@@ -74,8 +77,44 @@ export function governanceSystemPrompt(frameworks: string[]) {
     "If no evidence is provided at all, state that compliance cannot be assessed.",
     "Under Gaps, list every quality metric with status warn or fail, every drift result that is not stable, every high or critical anomaly, and every non-compliant assessment, each with its value from the evidence.",
     "Do not copy free-text descriptions or findings verbatim; summarise what the metrics show.",
+    ...mappingInstructions(frameworks),
     GOVERNANCE_INSTRUCTIONS,
   ].join(" ");
+}
+
+/**
+ * Clauses the report may cite. Limited to ones monitoring evidence can speak
+ * to, so the model ties evidence to real clause numbers instead of inventing
+ * them (evals/langfuse/checks.ts validClauseRefs rejects unknown ids).
+ */
+export const GDPR_CLAUSES = [
+  ["Art. 5(1)(d)", "Accuracy: personal data kept accurate and up to date"],
+  ["Art. 5(1)(e)", "Storage limitation"],
+  ["Art. 5(2)", "Accountability: the controller can demonstrate compliance"],
+  ["Art. 24", "Responsibility of the controller: appropriate measures, reviewed and updated"],
+  ["Art. 25", "Data protection by design and by default"],
+  ["Art. 30", "Records of processing activities"],
+  ["Art. 32", "Security of processing, including regular testing and evaluation of measures"],
+  ["Art. 35", "Data protection impact assessment"],
+] as const;
+
+export const NIST_CLAUSES = [
+  ["GOVERN 1.5", "Ongoing monitoring and periodic review of the risk management process are planned"],
+  ["MEASURE 1.1", "Approaches and metrics for measuring AI risks are selected"],
+  ["MEASURE 2.4", "Functionality and behavior of the AI system are monitored in production"],
+  ["MEASURE 3.1", "Existing, unanticipated and emergent AI risks are regularly identified and tracked"],
+  ["MANAGE 4.1", "Post-deployment monitoring plans are implemented"],
+] as const;
+
+function mappingInstructions(frameworks: string[]) {
+  const lines: string[] = [
+    "In each framework mapping section, write a markdown table with columns Clause | Requirement | Evidence | Status.",
+    "Each row cites one clause from the list below, the specific metric names and values from the evidence that bear on it, and a Status of Supported, Gap, or Not evidenced.",
+    "Cite at least three clauses per framework. Use Not evidenced when the evidence does not cover a clause; never invent evidence to fill a row. Cite no clause outside the list.",
+  ];
+  if (frameworks.some((f) => /gdpr/i.test(f))) lines.push(`GDPR clauses: ${GDPR_CLAUSES.map(([id, text]) => `${id} (${text})`).join("; ")}.`);
+  if (frameworks.some((f) => /nist/i.test(f))) lines.push(`NIST AI RMF 1.0 subcategories: ${NIST_CLAUSES.map(([id, text]) => `${id} (${text})`).join("; ")}.`);
+  return lines;
 }
 
 export const GOVERNANCE_INSTRUCTIONS =
@@ -114,8 +153,10 @@ export async function generateGovernanceNarrative(
   const messages = buildGovernanceMessages(input);
   if (!langfuseEnabled()) {
     const completion = await chat(messages, OPTIONS);
+    const guarded = ensureGapCoverage(completion.content, input.evidence);
     return {
-      markdown: completion.content,
+      markdown: guarded.markdown,
+      gapsAdded: guarded.added,
       model: completion.model,
       elapsedMs: completion.elapsedMs,
       usage: completion.usage,
@@ -154,12 +195,14 @@ export async function generateGovernanceNarrative(
         },
         { asType: "generation" },
       );
+      const guarded = ensureGapCoverage(completion.content, input.evidence);
       chain.update({
-        output: completion.content,
-        metadata: { model: completion.model, elapsedMs: completion.elapsedMs },
+        output: guarded.markdown,
+        metadata: { model: completion.model, elapsedMs: completion.elapsedMs, gapsAdded: guarded.added },
       });
       return {
-        markdown: completion.content,
+        markdown: guarded.markdown,
+        gapsAdded: guarded.added,
         model: completion.model,
         elapsedMs: completion.elapsedMs,
         usage: completion.usage,
@@ -215,11 +258,28 @@ export const offlineChat: ChatFn = async (messages) => {
     lines.push(`- ${label(row.detectionMethod)}: ${row.affectedRecords} records, ${row.severity} severity. ${row.description ?? ""}`.trim());
   for (const row of assessments)
     lines.push(`- Compliance assessment score ${row.score} (${row.status}). ${Array.isArray(row.findings) ? row.findings.join(" ") : ""}`.trim());
+  const qualityCell = quality.length ? quality.map((row) => `${row.metricType} ${row.metricValue}`).join(", ") : "Not provided";
+  const driftCell = drift.length ? drift.map((row) => `KS drift ${row.driftScore} (${row.status})`).join(", ") : "Not provided";
+  const anomalyCell = anomalies.length ? anomalies.map((row) => `${label(row.detectionMethod)} ${row.affectedRecords} records`).join(", ") : "Not provided";
+  const status = (cell: string, bad: boolean) => (cell === "Not provided" ? "Not evidenced" : bad ? "Gap" : "Supported");
+  const table = (rows: [string, string, string, string][]) => [
+    "| Clause | Requirement | Evidence | Status |",
+    "|---|---|---|---|",
+    ...rows.map((r) => `| ${r.join(" | ")} |`),
+  ];
   if (frameworks.some((f) => /gdpr/i.test(f))) {
-    lines.push("", "## GDPR mapping", "Monitoring evidence bears on the accuracy and accountability principles for personal data processing.");
+    lines.push("", "## GDPR mapping", ...table([
+      ["Art. 5(1)(d)", "Accuracy", qualityCell, status(qualityCell, weak.length > 0)],
+      ["Art. 32", "Regular testing and evaluation", driftCell, status(driftCell, movingDrift.length > 0)],
+      ["Art. 5(2)", "Accountability", anomalyCell, status(anomalyCell, seriousAnomalies.length > 0)],
+    ]));
   }
   if (frameworks.some((f) => /nist/i.test(f))) {
-    lines.push("", "## NIST AI RMF mapping", "Resident monitoring cycles evidence the Measure and Manage functions.");
+    lines.push("", "## NIST AI RMF mapping", ...table([
+      ["MEASURE 1.1", "Risk metrics selected", qualityCell, status(qualityCell, weak.length > 0)],
+      ["MEASURE 2.4", "Production behaviour monitored", driftCell, status(driftCell, movingDrift.length > 0)],
+      ["MANAGE 4.1", "Post-deployment monitoring", anomalyCell, status(anomalyCell, seriousAnomalies.length > 0)],
+    ]));
   }
   lines.push("", "## Gaps");
   if (!hasEvidence) lines.push("- Compliance cannot be assessed without monitoring evidence.");

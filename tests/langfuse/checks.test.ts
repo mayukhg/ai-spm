@@ -142,3 +142,28 @@ test("prompt-fix-v5 replies", () => {
   assert.equal(checks.abstained("The evidence includes sections for drift, quality, and anomalies. However, all these sections are empty.")[0], 1);
   assert.equal(checks.abstained("However, no data was available in these categories.")[0], 1);
 });
+
+test("clause references must exist", () => {
+  assert.equal(checks.validClauseRefs("Art. 5(1)(d), Article 32, MEASURE 2.4, MANAGE 4.1, GOVERN 1.5")[0], 1);
+  assert.equal(checks.validClauseRefs("Article 102 and MEASURE 5.2 and MANAGE 4.9")[0], 0);
+});
+
+test("mapping depth needs clauses tied to evidence", () => {
+  const ev = { quality: [{ metricType: "completeness", metricValue: 0.72, status: "fail" }], drift: [{ driftScore: 0.41, status: "drifted", detectionMethod: "kolmogorov_smirnov" }] };
+  const deep = "## GDPR mapping\n| Art. 5(1)(d) | Accuracy | completeness 0.72 | Gap |\n| Art. 32 | Testing | KS drift 0.41 | Gap |\n";
+  const shallow = "## GDPR mapping\nMonitoring supports Art. 5(2) accountability in general.\n";
+  assert.equal(checks.mappingDepth(deep, ["GDPR"], ev)[0], 1);
+  assert.equal(checks.mappingDepth(shallow, ["GDPR"], ev)[0], 0);
+});
+
+test("gap guard appends a failing signal the model left out of Gaps", async () => {
+  const { ensureGapCoverage } = await import("../../server/governance/gap-guard");
+  const evidence = { quality: [{ metricType: "completeness", metricValue: 0.61, status: "fail" }, { metricType: "uniqueness", metricValue: 0.7, status: "warn" }] };
+  // Verbatim shape of the mapping-depth-v1 miss: uniqueness is absent from Gaps.
+  const md = "# Gaps\n- Quality metrics show failures in completeness (0.61).\n\n# Recommended Remediation\n- Fix ingestion.\n";
+  const out = ensureGapCoverage(md, evidence);
+  assert.deepEqual(out.added, ["- uniqueness is warn at 0.7."]);
+  assert.match(out.markdown, /completeness \(0\.61\)\.\n- uniqueness is warn at 0\.7\.\n\n# Recommended/);
+  assert.equal(checks.failuresCalledOut(out.markdown, evidence)[0], 1);
+  assert.deepEqual(ensureGapCoverage(out.markdown, evidence).added, []);
+});
