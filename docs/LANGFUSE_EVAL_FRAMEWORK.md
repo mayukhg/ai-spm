@@ -64,6 +64,26 @@ CI (`.github/workflows/langfuse-evals.yml`) runs the unit tests and the offline 
 
 Tested end to end on 24 Nov 2026: one generated report trace received the generation, both reviewer scores and all seven `online_*` scores.
 
+## Langfuse v4 readiness
+
+Checked against the [v4 project migration workflow](https://raw.githubusercontent.com/langfuse/skills/main/skills/langfuse/references/v4-project-migration.md) on 24 Nov 2026.
+
+- **SDK.** `@langfuse/client`, `core`, `otel` and `tracing` are declared `^6.1.1` and resolve to 6.1.1, the GA major for Langfuse v4 (Node 22+). The lockfile is current. There is no Python SDK, no `/api/public/ingestion` call and no legacy (`api.legacy.*`) client use.
+- **Custom exporter.** `server/observability/langfuse.ts` exports OTLP/HTTP to `/api/public/otel/v1/traces` with Basic Auth and the same headers as Langfuse's own exporter, including `x-langfuse-ingestion-version: 4` and `x-langfuse-sdk-version`. It is used only behind `HTTPS_PROXY`; otherwise the SDK's default exporter runs.
+- **Observations-first attributes.** v4 queries observations, not traces. `generateGovernanceNarrative()` now wraps the root observation in `propagateAttributes()`, so the root chain **and** the cost-bearing generation carry:
+  - the trace name `governance.synthesize_report`;
+  - `userId` (the report's creator);
+  - tags (`governance-report` plus one per framework);
+  - `version`, the prompt version `GOVERNANCE_PROMPT_VERSION`;
+  - trace metadata `reportId`, `assetId`, `assetName` and `frameworks`;
+  - the processor's `environment` and `release` (`LANGFUSE_TRACING_ENVIRONMENT`, `LANGFUSE_RELEASE`).
+
+  Overall input and output are on the root observation. Trace-level input and output are not used. There is no session concept on this path.
+- **APIs.** In use: dataset create/get, dataset items, the SDK experiment runner (Experiments API), `POST /scores` and Observations v2 (`score-production.ts`). None is deprecated.
+- **Verified.**
+  - `tests/langfuse/propagation.test.ts` runs the real `LangfuseSpanProcessor` against an in-memory exporter and asserts the attributes on both observations.
+  - A live canary (environment `v4-canary`, release `langfuse-v4-migration`) arrived in about 15 s, which is the real-time path. Observations v2 filters on trace name, tags, release and user each returned both the root and the generation. The generation carried model, usage and cost.
+
 ## Findings and the prompt fix
 
 `live-baseline-2` used the original system prompt (`LEGACY_GOVERNANCE_SYSTEM_PROMPT`). `prompt-fix-v5` used the per-report prompt from `governanceSystemPrompt()`. Both ran with the AI judge on; the baseline had 2 repeats and v5 had 3.

@@ -6,7 +6,7 @@
  * exercise exactly the same prompt and model call.
  */
 
-import { startActiveObservation } from "@langfuse/tracing";
+import { propagateAttributes, startActiveObservation } from "@langfuse/tracing";
 import { chatCompletion, openRouterModel, type OpenRouterChatMessage, type OpenRouterResult } from "./openrouter-client";
 import { costUsd, initLangfuse, langfuseEnabled } from "../observability/langfuse";
 import { ensureGapCoverage } from "./gap-guard";
@@ -146,9 +146,43 @@ export type ChatFn = (
 const OPTIONS = { temperature: 0.2, maxTokens: 2500 };
 
 /** Generate one report. Traced to Langfuse when it is configured. */
+export const GOVERNANCE_TRACE_NAME = "governance.synthesize_report";
+/** Bump when the report prompt changes, so Langfuse can compare prompt versions. */
+export const GOVERNANCE_PROMPT_VERSION = "2026-11-24.clause-tables";
+
+/** Who and what a report is for. Propagated to every observation in its trace. */
+export type GovernanceTraceContext = {
+  userId?: number | string;
+  reportId?: number | string;
+  assetId?: number | string;
+};
+
+/**
+ * Langfuse v4 queries observations, not traces, so trace-wide attributes must be
+ * on every observation that is filtered or aggregated, including the
+ * cost-bearing generation. propagateAttributes runs before the root observation
+ * starts, so the root and all children carry them.
+ */
+export function governancePropagation(input: GovernanceReportInput, context: GovernanceTraceContext = {}) {
+  const metadata: Record<string, string> = {
+    assetName: input.assetName.slice(0, 200),
+    frameworks: input.frameworks.join(","),
+  };
+  if (context.reportId !== undefined) metadata.reportId = String(context.reportId);
+  if (context.assetId !== undefined) metadata.assetId = String(context.assetId);
+  return {
+    traceName: GOVERNANCE_TRACE_NAME,
+    userId: context.userId !== undefined ? String(context.userId) : undefined,
+    version: GOVERNANCE_PROMPT_VERSION,
+    tags: ["governance-report", ...input.frameworks.map((f) => f.toLowerCase().replace(/[^a-z0-9]+/g, "-"))],
+    metadata,
+  };
+}
+
 export async function generateGovernanceNarrative(
   input: GovernanceReportInput,
   chat: ChatFn = chatCompletion,
+  context: GovernanceTraceContext = {},
 ): Promise<GovernanceReportResult> {
   const messages = buildGovernanceMessages(input);
   if (!langfuseEnabled()) {
@@ -164,8 +198,16 @@ export async function generateGovernanceNarrative(
     };
   }
   initLangfuse();
+  return propagateAttributes(governancePropagation(input, context), () => traceReport(input, messages, chat));
+}
+
+async function traceReport(
+  input: GovernanceReportInput,
+  messages: OpenRouterChatMessage[],
+  chat: ChatFn,
+): Promise<GovernanceReportResult> {
   return startActiveObservation(
-    "governance.synthesize_report",
+    GOVERNANCE_TRACE_NAME,
     async (chain) => {
       chain.update({ input: { assetName: input.assetName, frameworks: input.frameworks, evidence: input.evidence } });
       const completion = await startActiveObservation(
