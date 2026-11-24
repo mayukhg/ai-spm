@@ -178,7 +178,7 @@ export async function startGovernanceReport(options: {
     .returning();
 
   // Fire-and-forget async synthesis so the HTTP request stays responsive
-  void synthesizeReport(pending.id, asset.id, asset.name, frameworks).catch(async (error) => {
+  void synthesizeReport(pending.id, asset.id, asset.name, frameworks, options.createdBy).catch(async (error) => {
     logger.error("Governance report synthesis failed", {
       reportId: pending.id,
       error: (error as Error).message,
@@ -202,11 +202,16 @@ const synthesizeReport = withSpan(
   assetId: number,
   assetName: string,
   frameworks: string[],
+  createdBy?: number,
 ) {
   const evidence = await collectEvidence(assetId);
   const started = Date.now();
 
-  const completion = await generateGovernanceNarrative({ assetName, frameworks, evidence });
+  const completion = await generateGovernanceNarrative({ assetName, frameworks, evidence }, undefined, {
+    userId: createdBy,
+    reportId,
+    assetId,
+  });
 
   const bodyMarkdown = completion.markdown;
   await db
