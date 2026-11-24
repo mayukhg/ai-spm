@@ -42,7 +42,7 @@ function createClient(apiKey: string) {
 
 export async function chatCompletion(
   messages: OpenRouterChatMessage[],
-  options: { temperature?: number; maxTokens?: number } = {},
+  options: { temperature?: number; maxTokens?: number; model?: string } = {},
 ): Promise<OpenRouterResult> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
@@ -51,7 +51,7 @@ export async function chatCompletion(
     );
   }
 
-  const model = openRouterModel();
+  const model = options.model ?? openRouterModel();
   const started = Date.now();
   const client = createClient(apiKey);
 

@@ -221,7 +221,7 @@ function tokenize(text: string): { text: string; start: number; end: number }[] 
   return tokens;
 }
 
-function classifyPrompt(
+export function classifyPrompt(
   prompt: { id: string; expected: string; text: string },
   threshold: number,
 ): LlmClassification {

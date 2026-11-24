@@ -1,0 +1,72 @@
+name: AI-SPM governance evals
+
+on:
+  pull_request:
+    paths:
+      - "server/governance/**"
+      - "server/observability/langfuse.ts"
+      - "server/analysis/synthetic-analysis.ts"
+      - "evals/**"
+      - "tests/langfuse/**"
+      - "fixtures/synthetic/**"
+      - ".github/workflows/langfuse-evals.yml"
+  push:
+    branches: [main]
+    paths:
+      - "server/governance/**"
+      - "evals/**"
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Also run the live suites against OpenRouter and Langfuse (uses repo secrets, costs a few cents)"
+        type: boolean
+        default: false
+
+jobs:
+  offline:
+    name: Unit tests and offline gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Unit tests
+        run: npm run test:langfuse
+      - name: Offline gates
+        # The offline template writes reports from the evidence with no model
+        # call, so it tests the pipeline and the checks, not model quality. The
+        # adversarial suite needs a real model (the template copies injected
+        # text by design) and runs in the live job.
+        run: npm run langfuse:eval -- --offline --no-langfuse --suite governance_golden,prompt_classifier --report reports-ci/offline.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-scorecard
+          path: reports-ci/
+
+  live:
+    name: Live suites (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Live gates
+        run: npm run langfuse:eval -- --judge --repeats 2 --run-name "ci-${{ github.run_id }}" --report reports-ci/live.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-scorecard
+          path: reports-ci/
